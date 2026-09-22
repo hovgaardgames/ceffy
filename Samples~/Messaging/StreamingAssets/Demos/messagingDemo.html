@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ceffy Messaging Demo</title>
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0b0f14; color: #e7eef7; }
+      header { padding: 12px 16px; border-bottom: 1px solid #1c2733; background: #0f1520; }
+      header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+      main { display: grid; grid-template-columns: 360px 1fr; gap: 12px; padding: 12px; }
+      .card { background: #0f1520; border: 1px solid #1c2733; border-radius: 10px; padding: 12px; }
+      .row { display: flex; gap: 8px; align-items: center; }
+      input, button, textarea { font: inherit; }
+      input, textarea { width: 100%; box-sizing: border-box; background: #0b0f14; color: #e7eef7; border: 1px solid #1c2733; border-radius: 8px; padding: 8px 10px; }
+      button { background: #1f6feb; color: white; border: 0; border-radius: 8px; padding: 8px 10px; cursor: pointer; }
+      button.secondary { background: #243244; }
+      button:disabled { opacity: 0.5; cursor: default; }
+      .log { height: 520px; overflow: auto; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.4; }
+      .hint { color: #9fb1c5; font-size: 12px; margin-top: 8px; }
+      .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid #1c2733; font-size: 12px; color: #9fb1c5; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="row" style="justify-content: space-between;">
+        <h1>Ceffy Messaging Demo</h1>
+        <span id="status" class="pill">status: booting…</span>
+      </div>
+    </header>
+    <main>
+      <section class="card">
+        <div class="row">
+          <button id="btnPing" disabled>SendToUnity()</button>
+          <button id="btnClear" class="secondary">Clear log</button>
+        </div>
+        <div style="height: 10px;"></div>
+        <label for="payload">Payload (object or string)</label>
+        <textarea id="payload" rows="8">{ "type": "ping", "ts": 0, "message": "Hello from JS" }</textarea>
+        <div class="hint">
+          - JS → Unity: <code>window.ceffy.SendToUnity(data)</code><br/>
+          - Unity → JS: set <code>window.ceffy.onMessageFromUnity = (msg) =&gt; { ... }</code>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="row" style="justify-content: space-between;">
+          <div><b>Log</b></div>
+          <div class="pill" id="readyPill">window.ceffy: (checking)</div>
+        </div>
+        <div style="height: 10px;"></div>
+        <div id="log" class="log"></div>
+      </section>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const logEl = $("log");
+      const statusEl = $("status");
+      const readyPillEl = $("readyPill");
+      const btnPing = $("btnPing");
+      const btnClear = $("btnClear");
+      const payloadEl = $("payload");
+
+      function log(line) {
+        const ts = new Date().toISOString();
+        logEl.textContent += `[${ts}] ${line}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function setStatus(text) {
+        statusEl.textContent = `status: ${text}`;
+      }
+
+      btnClear.addEventListener("click", () => { logEl.textContent = ""; });
+
+      function parsePayload() {
+        const raw = payloadEl.value ?? "";
+        // If it looks like JSON, parse it; otherwise treat it as a string.
+        const trimmed = raw.trim();
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+          try { return JSON.parse(trimmed); } catch { return raw; }
+        }
+        return raw;
+      }
+
+      function wireCeffy() {
+        if (!window.ceffy) {
+          readyPillEl.textContent = "window.ceffy: missing";
+          readyPillEl.style.color = "#ffb4a6";
+          btnPing.disabled = true;
+          return false;
+        }
+
+        readyPillEl.textContent = "window.ceffy: available";
+        readyPillEl.style.color = "#9fb1c5";
+        btnPing.disabled = false;
+
+        window.ceffy.onMessageFromUnity = (msg) => {
+          log(`onMessageFromUnity: ${typeof msg === "string" ? msg : JSON.stringify(msg)}`);
+        };
+
+        btnPing.addEventListener("click", () => {
+          const data = parsePayload();
+          log(`SendToUnity: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+          window.ceffy.SendToUnity(data);
+        });
+
+        setStatus("ready");
+        // Send a hello immediately.
+        window.ceffy.SendToUnity({ type: "hello", message: "JS connected", ts: Date.now() });
+        return true;
+      }
+
+      // Try immediately; injection is expected at FrameLoadStart, so this should usually succeed.
+      setStatus("initializing…");
+      if (!wireCeffy()) {
+        // Safety retry in case of unexpected timing differences.
+        let tries = 0;
+        const t = setInterval(() => {
+          tries++;
+          if (wireCeffy() || tries > 50) clearInterval(t);
+        }, 50);
+      }
+    </script>
+  </body>
+</html>
+

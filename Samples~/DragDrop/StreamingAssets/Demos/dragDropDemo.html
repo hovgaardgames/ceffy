@@ -1,0 +1,423 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ceffy Drag &amp; Drop Demo</title>
+    <style>
+      :root { color-scheme: dark; }
+      *, *::before, *::after { box-sizing: border-box; }
+      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #0b0f14; color: #e7eef7; }
+
+      header { padding: 12px 16px; border-bottom: 1px solid #1c2733; background: #0f1520; }
+      header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+      .row { display: flex; gap: 8px; align-items: center; }
+      .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid #1c2733; font-size: 12px; color: #9fb1c5; }
+      .pill.ok  { border-color: #22c55e44; color: #86efac; }
+      .pill.err { border-color: #ef444444; color: #fca5a5; }
+
+      main { display: grid; grid-template-columns: 1fr 320px; gap: 12px; padding: 12px; height: calc(100vh - 49px); }
+
+      /* ── Kanban board ─────────────────────────────────────────── */
+      .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-content: start; }
+
+      .column {
+        background: #0f1520;
+        border: 1px solid #1c2733;
+        border-radius: 10px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 440px;
+      }
+      .column-header {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #9fb1c5;
+        padding: 2px 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .column-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .col-todo   .column-dot { background: #6b7280; }
+      .col-doing  .column-dot { background: #f59e0b; }
+      .col-done   .column-dot { background: #22c55e; }
+
+      .column.drag-over {
+        border-color: #1f6feb;
+        background: #0f1a2e;
+      }
+
+      /* ── Cards ───────────────────────────────────────────────── */
+      .card {
+        background: #162030;
+        border: 1px solid #1c2733;
+        border-radius: 8px;
+        padding: 10px 12px;
+        cursor: grab;
+        user-select: none;
+        transition: box-shadow .15s, opacity .15s, border-color .15s;
+      }
+      .card:hover {
+        border-color: #2d4a6e;
+        box-shadow: 0 0 0 1px #1f6feb44;
+      }
+      .card.dragging {
+        opacity: .35;
+        cursor: grabbing;
+      }
+      .card-title { font-size: 13px; font-weight: 500; }
+      .card-meta  { font-size: 11px; color: #9fb1c5; margin-top: 4px; }
+      .card-tag {
+        display: inline-block; font-size: 10px; padding: 1px 6px;
+        border-radius: 4px; margin-top: 6px; font-weight: 600;
+      }
+      .tag-bug     { background: #7f1d1d55; color: #f87171; border: 1px solid #f8717133; }
+      .tag-feature { background: #1e3a5f55; color: #60a5fa; border: 1px solid #60a5fa33; }
+      .tag-chore   { background: #1f2937;   color: #9ca3af; border: 1px solid #374151; }
+
+      /* Drop placeholder that appears inside column while dragging over */
+      .drop-placeholder {
+        border: 2px dashed #1f6feb66;
+        border-radius: 8px;
+        height: 56px;
+        flex-shrink: 0;
+        background: #1f6feb0a;
+      }
+
+      /* ── Log panel ───────────────────────────────────────────── */
+      .log-panel {
+        background: #0f1520;
+        border: 1px solid #1c2733;
+        border-radius: 10px;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        overflow: hidden;
+      }
+      .log-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #1c2733;
+        margin-bottom: 8px;
+        flex-shrink: 0;
+      }
+      .log-header b { font-size: 13px; }
+      button.clear {
+        font: inherit; font-size: 11px;
+        background: #243244; color: #9fb1c5;
+        border: 0; border-radius: 6px; padding: 3px 8px; cursor: pointer;
+      }
+      button.clear:hover { background: #2d3f58; }
+
+      .log-body {
+        flex: 1; overflow-y: auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 11px; line-height: 1.5;
+      }
+      .log-entry { padding: 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .log-entry .ts  { color: #4a5568; }
+      .log-entry .ev  { font-weight: 600; }
+      .ev-dragstart   { color: #60a5fa; }
+      .ev-drag        { color: #818cf8; }
+      .ev-dragenter   { color: #34d399; }
+      .ev-dragover    { color: #6ee7b7; }
+      .ev-dragleave   { color: #f87171; }
+      .ev-drop        { color: #facc15; }
+      .ev-dragend     { color: #fb923c; }
+      .log-entry .info { color: #64748b; }
+
+      /* ── Stats strip ─────────────────────────────────────────── */
+      .stats {
+        display: flex; gap: 12px; margin-top: 8px;
+        font-size: 11px; color: #9fb1c5;
+        flex-shrink: 0;
+        border-top: 1px solid #1c2733; padding-top: 8px;
+      }
+      .stat b { color: #e7eef7; }
+
+      /* ── Help strip ──────────────────────────────────────────── */
+      .help {
+        font-size: 11px; color: #4a5568;
+        padding: 8px 0 0;
+        flex-shrink: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="row" style="justify-content:space-between;">
+        <h1>Ceffy Drag &amp; Drop Demo</h1>
+        <span id="status" class="pill">status: booting…</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- Kanban board -->
+      <div class="board" id="board">
+        <div class="column col-todo" data-col="todo" id="col-todo">
+          <div class="column-header"><span class="column-dot"></span>To Do</div>
+          <div class="card" draggable="true" data-id="c1">
+            <div class="card-title">Implement auth flow</div>
+            <div class="card-meta">@alice · 3 pts</div>
+            <span class="card-tag tag-feature">feature</span>
+          </div>
+          <div class="card" draggable="true" data-id="c2">
+            <div class="card-title">Fix memory leak in parser</div>
+            <div class="card-meta">@bob · 2 pts</div>
+            <span class="card-tag tag-bug">bug</span>
+          </div>
+          <div class="card" draggable="true" data-id="c3">
+            <div class="card-title">Update README</div>
+            <div class="card-meta">unassigned · 1 pt</div>
+            <span class="card-tag tag-chore">chore</span>
+          </div>
+        </div>
+
+        <div class="column col-doing" data-col="doing" id="col-doing">
+          <div class="column-header"><span class="column-dot"></span>In Progress</div>
+          <div class="card" draggable="true" data-id="c4">
+            <div class="card-title">Redesign settings panel</div>
+            <div class="card-meta">@carol · 5 pts</div>
+            <span class="card-tag tag-feature">feature</span>
+          </div>
+          <div class="card" draggable="true" data-id="c5">
+            <div class="card-title">Write unit tests</div>
+            <div class="card-meta">@dave · 2 pts</div>
+            <span class="card-tag tag-chore">chore</span>
+          </div>
+        </div>
+
+        <div class="column col-done" data-col="done" id="col-done">
+          <div class="column-header"><span class="column-dot"></span>Done</div>
+          <div class="card" draggable="true" data-id="c6">
+            <div class="card-title">Set up CI pipeline</div>
+            <div class="card-meta">@alice · 3 pts</div>
+            <span class="card-tag tag-chore">chore</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log + stats -->
+      <div class="log-panel">
+        <div class="log-header">
+          <b>DragEvent log</b>
+          <button class="clear" id="btnClear">Clear</button>
+        </div>
+        <div class="log-body" id="log"></div>
+        <div class="stats">
+          <div>Events: <b id="statTotal">0</b></div>
+          <div>Drops: <b id="statDrops">0</b></div>
+        </div>
+        <div class="help">
+          Drag any card to a different column.<br/>
+          All native DragEvent firings appear above.
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // ── Utilities ───────────────────────────────────────────────
+      const logEl      = document.getElementById('log');
+      const statusEl   = document.getElementById('status');
+      const statTotal  = document.getElementById('statTotal');
+      const statDrops  = document.getElementById('statDrops');
+
+      let totalEvents = 0, drops = 0;
+      // Suppress the flood of repeated 'dragover' events in the log.
+      let lastLoggedEvent = '';
+
+      function log(evName, detail = '') {
+        totalEvents++;
+        statTotal.textContent = totalEvents;
+
+        // Suppress consecutive dragover noise in the log (still count them)
+        if (evName === 'dragover' && evName === lastLoggedEvent) return;
+        lastLoggedEvent = evName;
+
+        const ts  = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const row = document.createElement('div');
+        row.className = 'log-entry';
+        row.innerHTML =
+          `<span class="ts">${ts}</span> ` +
+          `<span class="ev ev-${evName}">${evName}</span>` +
+          (detail ? ` <span class="info">${detail}</span>` : '');
+        logEl.appendChild(row);
+        logEl.scrollTop = logEl.scrollHeight;
+
+        // Limit log to 200 entries
+        while (logEl.children.length > 200) logEl.removeChild(logEl.firstChild);
+      }
+
+      document.getElementById('btnClear').addEventListener('click', () => {
+        logEl.innerHTML = '';
+        totalEvents = drops = 0;
+        statTotal.textContent = statDrops.textContent = '0';
+        lastLoggedEvent = '';
+      });
+
+      // ── Drag & Drop ─────────────────────────────────────────────
+      let draggedCard = null;
+      let sourceCol   = null;
+      let placeholder = null;
+      // RAF throttle state for dragover
+      let rafPending  = false;
+      let rafCol      = null;
+      let rafY        = 0;
+
+      function makePlaceholder() {
+        const el = document.createElement('div');
+        el.className = 'drop-placeholder';
+        return el;
+      }
+
+      function attachCard(card) {
+        card.addEventListener('dragstart', onDragStart);
+        card.addEventListener('dragend',   onDragEnd);
+      }
+
+      function onDragStart(e) {
+        draggedCard = e.currentTarget;
+        sourceCol   = draggedCard.closest('.column');
+        e.dataTransfer.setData('text/plain', draggedCard.dataset.id);
+        e.dataTransfer.effectAllowed = 'move';
+        // Delay the opacity change so the drag ghost captures the normal style
+        requestAnimationFrame(() => draggedCard.classList.add('dragging'));
+        log('dragstart', `card="${draggedCard.dataset.id}" col="${sourceCol.dataset.col}"`);
+      }
+
+      function onDragEnd(e) {
+        draggedCard?.classList.remove('dragging');
+        placeholder?.remove();
+        placeholder = null;
+        rafPending = false;
+        rafCol = null;
+        document.querySelectorAll('.column').forEach(c => c.classList.remove('drag-over'));
+        log('dragend', `card="${draggedCard?.dataset.id}" effect="${e.dataTransfer.dropEffect}"`);
+        draggedCard = null;
+        sourceCol   = null;
+      }
+
+      // Throttled placeholder repositioning — runs at most once per animation frame.
+      // Separating the read (getBoundingClientRect) and write (insertBefore/appendChild)
+      // from the dragover event handler eliminates the forced synchronous layout
+      // recalculations that caused the drag ghost to lag behind the cursor.
+      function schedulePlaceholderUpdate() {
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => {
+          rafPending = false;
+          if (!draggedCard || !placeholder || !rafCol) return;
+          const afterEl = getDragAfterElement(rafCol, rafY);
+          const newNext = afterEl ?? null;
+          // Skip the DOM write if the placeholder is already in the right spot
+          if (placeholder.nextSibling !== newNext || placeholder.parentNode !== rafCol) {
+            if (newNext) rafCol.insertBefore(placeholder, newNext);
+            else rafCol.appendChild(placeholder);
+          }
+        });
+      }
+
+      document.querySelectorAll('.column').forEach(col => {
+        col.addEventListener('dragenter', e => {
+          if (!draggedCard) return;
+          e.preventDefault();
+          col.classList.add('drag-over');
+          if (!placeholder) placeholder = makePlaceholder();
+          // Place immediately on enter so there's no visible delay on column switch
+          rafCol = col;
+          rafY   = e.clientY;
+          const afterEl = getDragAfterElement(col, e.clientY);
+          if (afterEl) col.insertBefore(placeholder, afterEl);
+          else col.appendChild(placeholder);
+          log('dragenter', `col="${col.dataset.col}"`);
+        });
+
+        col.addEventListener('dragover', e => {
+          if (!draggedCard) return;
+          e.preventDefault(); // Must be called every time to keep the drop allowed
+          e.dataTransfer.dropEffect = 'move';
+          // Only store the latest position and schedule one RAF update per frame
+          rafCol = col;
+          rafY   = e.clientY;
+          schedulePlaceholderUpdate();
+          log('dragover', `col="${col.dataset.col}"`);
+        });
+
+        col.addEventListener('dragleave', e => {
+          if (!draggedCard) return;
+          if (!col.contains(e.relatedTarget)) {
+            col.classList.remove('drag-over');
+            log('dragleave', `col="${col.dataset.col}"`);
+          }
+        });
+
+        col.addEventListener('drop', e => {
+          e.preventDefault();
+          if (!draggedCard) return;
+          const id = e.dataTransfer.getData('text/plain');
+          drops++;
+          statDrops.textContent = drops;
+          log('drop', `card="${id}" col="${col.dataset.col}"`);
+          placeholder?.replaceWith(draggedCard);
+          placeholder = null;
+          col.classList.remove('drag-over');
+        });
+      });
+
+      // Returns the card that the dragged item should be inserted before (or
+      // undefined to append at the end). Reads layout — only call from RAF.
+      function getDragAfterElement(column, y) {
+        const draggableEls = [...column.querySelectorAll('.card:not(.dragging)')];
+        return draggableEls.reduce((closest, el) => {
+          const box    = el.getBoundingClientRect();
+          const offset = y - box.top - box.height / 2;
+          if (offset < 0 && offset > closest.offset) return { offset, element: el };
+          return closest;
+        }, { offset: -Infinity }).element;
+      }
+
+      document.querySelectorAll('.card').forEach(attachCard);
+
+      // ── Status / ceffy ────────────────────────────────────────────
+      function wireCeffy() {
+        if (!window.ceffy) {
+          statusEl.textContent = 'status: no window.ceffy';
+          statusEl.className = 'pill';
+          return false;
+        }
+        statusEl.textContent = 'status: ready';
+        statusEl.className = 'pill ok';
+
+        window.ceffy.onMessageFromUnity = (msg) => {
+          log('unity-msg', typeof msg === 'string' ? msg : JSON.stringify(msg));
+        };
+        return true;
+      }
+
+      statusEl.textContent = 'status: initializing…';
+      if (!wireCeffy()) {
+        let tries = 0;
+        const t = setInterval(() => {
+          tries++;
+          if (wireCeffy() || tries > 50) clearInterval(t);
+        }, 50);
+      }
+
+      // Confirm HTML5 D&D API availability
+      if (typeof DragEvent !== 'undefined' && typeof DataTransfer !== 'undefined') {
+        log('api-check', 'DragEvent ✓  DataTransfer ✓  dataTransfer.setData ✓');
+      } else {
+        log('api-check', '⚠ DragEvent or DataTransfer not available');
+      }
+    </script>
+  </body>
+</html>

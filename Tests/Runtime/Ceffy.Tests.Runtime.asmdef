@@ -1,0 +1,19 @@
+{
+    "name": "Ceffy.Tests.Runtime",
+    "rootNamespace": "Ceffy.Tests.Runtime",
+    "references": [
+        "Ceffy"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Transitions</title>
+    <style>
+        :root {
+            --bg-dark: #0f1419;
+            --bg-card: #1a1f26;
+            --accent-teal: #2dd4bf;
+            --accent-coral: #f97316;
+            --accent-rose: #fb7185;
+            --accent-sky: #38bdf8;
+            --accent-violet: #a78bfa;
+            --accent-lime: #a3e635;
+            --text-primary: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #0f1419;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: var(--text-primary);
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            margin-bottom: 3rem;
+            text-transform: uppercase;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        /* Base button styles */
+        .btn {
+            position: relative;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Button 1: Scale & Glow */
+        .btn-glow {
+            background: linear-gradient(135deg, var(--accent-teal), #14b8a6);
+            color: var(--bg-dark);
+            box-shadow: 0 4px 15px rgba(45, 212, 191, 0.2);
+        }
+
+        .btn-glow:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(45, 212, 191, 0.4);
+        }
+
+        .btn-glow:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 10px rgba(45, 212, 191, 0.3);
+        }
+
+        /* Button 2: Slide Background */
+        .btn-slide {
+            background: transparent;
+            color: var(--accent-coral);
+            border: 2px solid var(--accent-coral);
+            z-index: 1;
+        }
+
+        .btn-slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--accent-coral);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn-slide:hover {
+            color: var(--bg-dark);
+        }
+
+        .btn-slide:hover::before {
+            left: 0;
+        }
+
+        .btn-slide:active {
+            transform: translateY(2px);
+        }
+
+        /* Button 3: Ripple Effect */
+        .btn-ripple {
+            background: var(--accent-rose);
+            color: white;
+        }
+
+        .btn-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease, height 0.4s ease;
+        }
+
+        .btn-ripple:hover::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-ripple:active {
+            transform: scale(0.92);
+        }
+
+        /* Button 4: 3D Push */
+        .btn-3d {
+            background: var(--accent-sky);
+            color: var(--bg-dark);
+            box-shadow: 
+                0 6px 0 #0284c7,
+                0 8px 15px rgba(56, 189, 248, 0.3);
+            transform: translateY(0);
+        }
+
+        .btn-3d:hover {
+            box-shadow: 
+                0 4px 0 #0284c7,
+                0 6px 12px rgba(56, 189, 248, 0.4);
+            transform: translateY(2px);
+        }
+
+        .btn-3d:active {
+            box-shadow: 
+                0 0 0 #0284c7,
+                0 2px 8px rgba(56, 189, 248, 0.3);
+            transform: translateY(6px);
+        }
+
+        /* Button 5: Border Dance */
+        .btn-border {
+            background: var(--bg-card);
+            color: var(--accent-violet);
+            border: 2px solid var(--accent-violet);
+        }
+
+        .btn-border:hover {
+            border-radius: 20px;
+            box-shadow: 
+                inset 0 0 20px rgba(167, 139, 250, 0.2),
+                0 0 20px rgba(167, 139, 250, 0.3);
+        }
+
+        .btn-border:active {
+            background: var(--accent-violet);
+            color: var(--bg-dark);
+            transform: rotate(-2deg);
+        }
+
+        /* Button 6: Neon Pulse */
+        .btn-neon {
+            background: transparent;
+            color: var(--accent-lime);
+            border: 2px solid var(--accent-lime);
+            text-shadow: 0 0 10px var(--accent-lime);
+            box-shadow: 
+                0 0 5px var(--accent-lime),
+                inset 0 0 5px rgba(163, 230, 53, 0.1);
+        }
+
+        .btn-neon:hover {
+            background: rgba(163, 230, 53, 0.1);
+            box-shadow: 
+                0 0 20px var(--accent-lime),
+                0 0 40px rgba(163, 230, 53, 0.3),
+                inset 0 0 20px rgba(163, 230, 53, 0.2);
+            text-shadow: 0 0 20px var(--accent-lime);
+        }
+
+        .btn-neon:active {
+            background: var(--accent-lime);
+            color: var(--bg-dark);
+            text-shadow: none;
+            transform: scale(0.95);
+        }
+
+        /* Button 7: Skew Transform */
+        .btn-skew {
+            background: linear-gradient(90deg, #ec4899, #f43f5e);
+            color: white;
+            border-radius: 4px;
+        }
+
+        .btn-skew:hover {
+            transform: skewX(-5deg) scale(1.02);
+            box-shadow: 5px 5px 0 rgba(236, 72, 153, 0.3);
+        }
+
+        .btn-skew:active {
+            transform: skewX(0deg) scale(0.98);
+            box-shadow: 2px 2px 0 rgba(236, 72, 153, 0.2);
+        }
+
+        /* Button 8: Gradient Shift */
+        .btn-gradient {
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
+            background-size: 200% 100%;
+            color: white;
+        }
+
+        .btn-gradient:hover {
+            background-position: 100% 0;
+            box-shadow: 0 5px 25px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-gradient:active {
+            transform: scale(0.95);
+            filter: brightness(0.9);
+        }
+
+        /* Footer text */
+        .footer {
+            margin-top: 3rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Performance counter */
+        .performance-counter {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(26, 31, 38, 0.9);
+            border: 2px solid var(--accent-teal);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(45, 212, 191, 0.3);
+        }
+
+        .performance-counter .label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .performance-counter .value {
+            color: var(--accent-teal);
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .performance-counter .fps-good {
+            color: var(--accent-lime);
+        }
+
+        .performance-counter .fps-medium {
+            color: var(--accent-coral);
+        }
+
+        .performance-counter .fps-bad {
+            color: var(--accent-rose);
+        }
+
+        /* Continuous animation elements */
+        .animation-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .animated-circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .circle-1 {
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, var(--accent-teal), transparent);
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .circle-2 {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, var(--accent-coral), transparent);
+            top: 60%;
+            right: 15%;
+            animation-delay: 2s;
+        }
+
+        .circle-3 {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, var(--accent-violet), transparent);
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        .circle-4 {
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, var(--accent-sky), transparent);
+            top: 30%;
+            right: 30%;
+            animation-delay: 1s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            25% {
+                transform: translate(50px, -50px) scale(1.1);
+            }
+            50% {
+                transform: translate(-30px, 30px) scale(0.9);
+            }
+            75% {
+                transform: translate(30px, 50px) scale(1.05);
+            }
+        }
+
+        /* Rotating spinner */
+        .spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 4px solid rgba(45, 212, 191, 0.2);
+            border-top-color: var(--accent-teal);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes spin {
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        /* Pulsing elements */
+        .pulse-element {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            background: var(--accent-rose);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .pulse-1 {
+            top: 15%;
+            left: 5%;
+            animation-delay: 0s;
+        }
+
+        .pulse-2 {
+            top: 80%;
+            right: 5%;
+            animation-delay: 1s;
+        }
+
+        .pulse-3 {
+            bottom: 15%;
+            left: 50%;
+            animation-delay: 0.5s;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.7;
+            }
+            50% {
+                transform: scale(1.5);
+                opacity: 0.3;
+            }
+        }
+
+        /* Make body content appear above animations */
+        body > *:not(.animation-container):not(.spinner):not(.pulse-element):not(.cursor-icon) {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Cursor position display */
+        .cursor-position {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            color: black;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .cursor-position .label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .cursor-position .coords {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* Cursor icon */
+        .cursor-icon {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 24px;
+            height: 24px;
+            border: 3px solid red;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <!-- Cursor Icon -->
+    <div class="cursor-icon" id="cursor-icon"></div>
+
+    <!-- Cursor Position Display -->
+    <div class="cursor-position">
+        <div class="label">Cursor Position</div>
+        <div class="coords" id="cursor-coords">X: -- Y: --</div>
+    </div>
+
+    <!-- Performance Counter -->
+    <div class="performance-counter">
+        <div class="label">JS FPS</div>
+        <div class="value" id="fps-counter">--</div>
+    </div>
+
+    <!-- Continuous Animations -->
+    <div class="animation-container">
+        <div class="animated-circle circle-1"></div>
+        <div class="animated-circle circle-2"></div>
+        <div class="animated-circle circle-3"></div>
+        <div class="animated-circle circle-4"></div>
+    </div>
+    <div class="spinner"></div>
+    <div class="pulse-element pulse-1"></div>
+    <div class="pulse-element pulse-2"></div>
+    <div class="pulse-element pulse-3"></div>
+
+    <div class="button-grid">
+        <button class="btn btn-glow">Scale & Glow</button>
+        <button class="btn btn-slide">Slide Fill</button>
+        <button class="btn btn-ripple">Ripple Effect</button>
+        <button class="btn btn-3d">3D Push</button>
+        <button class="btn btn-border">Border Dance</button>
+        <button class="btn btn-neon">Neon Pulse</button>
+        <button class="btn btn-skew">Skew Transform</button>
+        <button class="btn btn-gradient">Gradient Shift</button>
+    </div>
+
+    <script>
+        // FPS Counter
+        let frameCount = 0;
+        let lastTime = performance.now();
+        let fps = 0;
+        const fpsCounter = document.getElementById('fps-counter');
+
+        function updateCounter() {
+            frameCount++;
+            const currentTime = performance.now();
+            const deltaTime = currentTime - lastTime;
+
+            if (deltaTime >= 1000) {
+                fps = Math.round((frameCount * 1000) / deltaTime);
+                frameCount = 0;
+                lastTime = currentTime;
+
+                // Update FPS display with color coding
+                fpsCounter.textContent = fps;
+                fpsCounter.className = 'value';
+                if (fps >= 55) {
+                    fpsCounter.classList.add('fps-good');
+                } else if (fps >= 30) {
+                    fpsCounter.classList.add('fps-medium');
+                } else {
+                    fpsCounter.classList.add('fps-bad');
+                }
+            }
+
+            requestAnimationFrame(updateCounter);
+        }
+
+        // Start the counter
+        requestAnimationFrame(updateCounter);
+
+        // Add continuous button animations for extra stress
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach((btn, index) => {
+            // Add subtle continuous animation to some buttons
+            if (index % 2 === 0) {
+                btn.style.animation = `subtlePulse ${2 + index * 0.5}s ease-in-out infinite`;
+            }
+        });
+
+        // Add CSS for subtle button pulse
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes subtlePulse {
+                0%, 100% {
+                    filter: brightness(1);
+                }
+                50% {
+                    filter: brightness(1.1);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Cursor position tracking
+        const cursorCoords = document.getElementById('cursor-coords');
+        const cursorIcon = document.getElementById('cursor-icon');
+        document.addEventListener('mousemove', (event) => {
+            cursorCoords.textContent = `X: ${event.clientX} Y: ${event.clientY}`;
+            cursorIcon.style.left = event.clientX + 'px';
+            cursorIcon.style.top = event.clientY + 'px';
+        });
+    </script>
+</body>
+</html>

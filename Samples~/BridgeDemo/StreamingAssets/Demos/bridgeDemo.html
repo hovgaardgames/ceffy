@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ceffy Bridge Demo</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 24px; }
+    h1 { font-size: 20px; margin-bottom: 16px; color: #7c83ff; }
+    h2 { font-size: 15px; margin: 16px 0 8px; color: #a0a0a0; text-transform: uppercase; letter-spacing: 1px; }
+    .card { background: #16213e; border-radius: 8px; padding: 16px; margin-bottom: 12px; border: 1px solid #2a2a4a; }
+    button { background: #7c83ff; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; margin: 4px; transition: background 0.2s; }
+    button:hover { background: #6a70e0; }
+    button:active { background: #5a60c0; }
+    .log { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; background: #0f0f23; border-radius: 6px; padding: 12px; margin-top: 8px; max-height: 200px; overflow-y: auto; border: 1px solid #2a2a4a; }
+    .log-entry { padding: 2px 0; border-bottom: 1px solid #1a1a3e; }
+    .log-entry:last-child { border-bottom: none; }
+    .tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; margin-right: 6px; }
+    .tag-send { background: #2d5a27; color: #8bff7e; }
+    .tag-recv { background: #5a2d27; color: #ff8b7e; }
+    .tag-info { background: #27455a; color: #7ec8ff; }
+    #player-display { display: none; }
+    #player-display.visible { display: block; }
+    .player-info { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+    .player-info dt { color: #888; }
+    .player-info dd { color: #fff; }
+    #notification-area { position: fixed; top: 12px; right: 12px; z-index: 100; }
+    .notification { background: #7c83ff; color: #fff; padding: 12px 18px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; animation: slideIn 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+    .notification strong { display: block; margin-bottom: 4px; }
+    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+</style>
+</head>
+<body>
+
+<h1>Ceffy Bridge Demo</h1>
+
+<div id="notification-area"></div>
+
+<div class="card">
+    <h2>JS -> C# (Unity Methods)</h2>
+    <button onclick="callGetPlayer()">getPlayer()</button>
+    <button onclick="callGetParty()">getPartyMembers()</button>
+    <button onclick="callGreet()">greet("World")</button>
+    <button onclick="callLog()">logFromJs("hello")</button>
+</div>
+
+<div class="card" id="player-display">
+    <h2>Player Data (from C#)</h2>
+    <dl class="player-info">
+        <dt>Name</dt><dd id="p-name">-</dd>
+        <dt>Level</dt><dd id="p-level">-</dd>
+        <dt>Class</dt><dd id="p-class">-</dd>
+    </dl>
+</div>
+
+<div class="card">
+    <h2>Log</h2>
+    <div class="log" id="log"></div>
+</div>
+
+<script>
+var logEl = document.getElementById('log');
+
+function log(tag, tagClass, message) {
+    var entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = '<span class="tag ' + tagClass + '">' + tag + '</span>' +
+        (typeof message === 'string' ? message : JSON.stringify(message, null, 2));
+    logEl.prepend(entry);
+}
+
+// Wait for bridge injection
+document.addEventListener('ceffy:ready', function() {
+    log('ready', 'tag-info', 'Bridge connected');
+
+    // Register UI Methods (C# calls these)
+    ceffy.ui.showNotification = function(title, message) {
+        log('recv', 'tag-recv', 'showNotification: ' + title + ' - ' + message);
+        showNotification(title, message);
+    };
+
+    ceffy.ui.updatePlayerDisplay = function(player) {
+        log('recv', 'tag-recv', 'updatePlayerDisplay: ' + JSON.stringify(player));
+        displayPlayer(player);
+    };
+});
+
+async function callGetPlayer() {
+    log('send', 'tag-send', 'getPlayer()');
+    try {
+        var player = await ceffy.unity.getPlayer();
+        log('recv', 'tag-recv', player);
+        displayPlayer(player);
+    } catch(e) {
+        log('recv', 'tag-recv', 'Error: ' + e.message);
+    }
+}
+
+async function callGetParty() {
+    log('send', 'tag-send', 'getPartyMembers()');
+    try {
+        var members = await ceffy.unity.getPartyMembers();
+        log('recv', 'tag-recv', members);
+    } catch(e) {
+        log('recv', 'tag-recv', 'Error: ' + e.message);
+    }
+}
+
+async function callGreet() {
+    log('send', 'tag-send', 'greet("World")');
+    try {
+        var result = await ceffy.unity.greet('World');
+        log('recv', 'tag-recv', result);
+    } catch(e) {
+        log('recv', 'tag-recv', 'Error: ' + e.message);
+    }
+}
+
+function callLog() {
+    log('send', 'tag-send', 'logFromJs("hello from the web!")');
+    ceffy.unity.logFromJs('hello from the web!');
+}
+
+function displayPlayer(player) {
+    var el = document.getElementById('player-display');
+    el.classList.add('visible');
+    document.getElementById('p-name').textContent = player.name;
+    document.getElementById('p-level').textContent = player.level;
+    var classes = ['Warrior', 'Mage', 'Rogue'];
+    document.getElementById('p-class').textContent = classes[player.class] || player.class;
+}
+
+function showNotification(title, message) {
+    var area = document.getElementById('notification-area');
+    var el = document.createElement('div');
+    el.className = 'notification';
+    el.innerHTML = '<strong>' + title + '</strong>' + message;
+    area.appendChild(el);
+    setTimeout(function() { el.remove(); }, 4000);
+}
+</script>
+</body>
+</html>

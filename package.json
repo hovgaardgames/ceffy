@@ -1,0 +1,48 @@
+{
+  "name": "com.hovgaard.ceffy",
+  "version": "1.0.0",
+  "displayName": "Ceffy",
+  "description": "Embeds a CEF (Chromium Embedded Framework) browser inside Unity via a native C++ plugin.",
+  "unity": "6000.0",
+  "author": {
+    "name": "Hovgaard Games"
+  },
+  "keywords": [
+    "browser",
+    "cef",
+    "chromium",
+    "webview",
+    "ui"
+  ],
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.unity.ugui": "2.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Drag & Drop Demo",
+      "description": "Drag and drop between browser and Unity.",
+      "path": "Samples~/DragDrop"
+    },
+    {
+      "displayName": "Messaging Demo",
+      "description": "Send/receive messages between JS and C#.",
+      "path": "Samples~/Messaging"
+    },
+    {
+      "displayName": "Performance Demo",
+      "description": "GPU stress test with a Ceffy overlay.",
+      "path": "Samples~/Performance"
+    },
+    {
+      "displayName": "Zoom Demo",
+      "description": "Runtime zoom level control.",
+      "path": "Samples~/Zoom"
+    },
+    {
+      "displayName": "Bridge Demo",
+      "description": "Bidirectional RPC bridge between C# and JavaScript.",
+      "path": "Samples~/BridgeDemo"
+    }
+  ]
+}
