@@ -2,6 +2,7 @@
 
 [![Unity 6+](https://img.shields.io/badge/Unity-6.0%2B-black?logo=unity)](https://unity3d.com/get-unity/download)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](LICENSE.md)
+[![openupm](https://img.shields.io/npm/v/com.hovgaard.ceffy?label=openupm&registry_uri=https%3A%2F%2Fpackage.openupm.com)](https://openupm.com/packages/com.hovgaard.ceffy/)
 
 Embeds a CEF (Chromium Embedded Framework) browser inside Unity via a native C++ plugin. Distributed as a UPM package with Git LFS–tracked native binaries.
 
