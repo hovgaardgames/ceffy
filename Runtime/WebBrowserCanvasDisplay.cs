@@ -42,7 +42,7 @@ namespace Ceffy
 
         private void Start()
         {
-            if (TryGetComponent(out rawImage))
+            if (!TryGetComponent(out rawImage))
                 rawImage = gameObject.AddComponent<RawImage>();
             
             rectTransform = transform as RectTransform;
