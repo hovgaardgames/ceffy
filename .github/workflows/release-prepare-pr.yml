@@ -1,0 +1,88 @@
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+name: release-prepare-pr
+
+concurrency:
+  group: release-please-main
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: release
+    outputs:
+      branch: ${{ steps.pr.outputs.branch }}
+      number: ${{ steps.pr.outputs.number }}
+    steps:
+      - id: release
+        name: Create or update release PR
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          target-branch: main
+          skip-github-release: true
+      - id: pr
+        name: Pass release PR details
+        env:
+          PR_NUMBER: ${{ fromJSON(steps.release.outputs.pr).number }}
+          PR_BRANCH_NAME: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+        run: |
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "branch=$PR_BRANCH_NAME" >> "$GITHUB_OUTPUT"
+          
+  build-native:
+    needs: release-please
+    runs-on: windows-2022
+    environment: release
+    steps:
+      - id: checkout
+        name: Check out release PR with LFS
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.branch }}
+          token: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
+          lfs: true
+      - id: build-native
+        name: Build native runtime
+        shell: pwsh
+        run: .\native~\build-native.ps1
+      - id: add-build-artifacts
+        name: Commit native runtime to release PR
+        shell: pwsh
+        env:
+          releaseBranch: ${{ needs.release-please.outputs.branch }}
+        run: |
+          git add --all -- NativeRuntime/win-x64
+          git diff --cached --quiet -- NativeRuntime/win-x64
+          if ($LASTEXITCODE -eq 0) { return }
+          if ($LASTEXITCODE -ne 1) { throw 'Could not inspect native runtime changes.' }
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore: rebuild native runtime'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not commit native runtime changes.' }
+
+          git push origin "HEAD:refs/heads/$env:releaseBranch"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not push native runtime changes.' }
+      - id: remove-draft
+        name: Mark release PR ready for review
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
+          releasePr: ${{ needs.release-please.outputs.number }}
+        run: |
+          $isDraft = gh pr view $env:releasePr --json isDraft --jq .isDraft
+          if ($LASTEXITCODE -ne 0) { throw 'Could not inspect the release pull request.' }
+          if ($isDraft -ne 'true') { return }
+
+          gh pr ready $env:releasePr
+          if ($LASTEXITCODE -ne 0) { throw 'Could not mark the release pull request ready.' }
