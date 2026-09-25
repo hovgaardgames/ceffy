@@ -149,19 +149,21 @@ namespace Ceffy
         /// <summary>
         /// Moves the slot to a region of the new size, keeping the iframe (and its page state) alive.
         /// </summary>
-        public void ResizeSlot(Slot slot, int width, int height)
+        public bool ResizeSlot(Slot slot, int width, int height)
         {
-            if (!IsRegistered(slot) || (slot.Content.width == width && slot.Content.height == height))
-                return;
+            if (!IsRegistered(slot))
+                return false;
+            if (slot.Content.width == width && slot.Content.height == height)
+                return true;
 
-            packer.Free(slot.Packed);
             if (!TryAllocate(width, height, out var packed, out var content))
             {
                 Debug.LogError(
                     $"[Ceffy] Shared texture is full; cannot resize '{slot.Owner.name}' to {width}x{height}.");
-                TryAllocate(slot.Content.width, slot.Content.height, out packed, out content);
+                return false;
             }
 
+            packer.Free(slot.Packed);
             slot.Packed = packed;
             slot.Content = content;
             if (hostReady)
@@ -170,6 +172,7 @@ namespace Ceffy
                     type = "layout", id = slot.IdString,
                     x = content.x, y = content.y, w = content.width, h = content.height
                 });
+            return true;
         }
 
         private bool TryAllocate(int width, int height, out RectInt packed, out RectInt content)
@@ -189,6 +192,7 @@ namespace Ceffy
         {
             slot.Url = url;
             slot.Loaded = false;
+            slot.Pending.Clear();
             if (hostReady)
                 SendToHost(new HostMessage { type = "navigate", id = slot.IdString, src = slot.Url });
         }
@@ -268,6 +272,9 @@ namespace Ceffy
 
             foreach (var slot in slots.Values)
                 SendAdd(slot);
+
+            if (focusedSlot != null)
+                SendToHost(new HostMessage { type = "focus", id = focusedSlot.IdString });
         }
 
         private void SendAdd(Slot slot)

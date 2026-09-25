@@ -33,9 +33,10 @@ namespace Ceffy
         public string StartUrl = "";
 
         [Tooltip("Run this page in a browser shared with every other CeffyInstance that has this enabled, " +
-                 "instead of starting a dedicated one. Each page stays isolated in its own iframe and gets its own " +
+                 "instead of starting a dedicated one. Each page runs in its own iframe and gets its own " +
                  "region of one shared texture. Recommended for many small UI elements such as nameplates, labels, " +
-                 "and tooltips. Leave off for full-screen or heavy UIs. Zoom is not supported in shared mode. " +
+                 "and tooltips. Leave off for full-screen or heavy UIs, and for untrusted content: shared pages can " +
+                 "reach the host page and each other. Zoom is not supported in shared mode. " +
                  "Changes take effect the next time the component is enabled.")]
         public bool UseSharedInstance = false;
 
@@ -340,7 +341,7 @@ namespace Ceffy
 
         /// <summary>
         /// Send a message to the page's window.ceffy.onMessageFromUnity handler.
-        /// Shared instances queue messages until their page has loaded.
+        /// Shared instances queue messages until the page assigns a handler.
         /// </summary>
         public void SendToCeffy(string message)
         {
@@ -410,12 +411,19 @@ namespace Ceffy
 
         private void ApplyResize()
         {
-            Width = lastViewportWidth;
-            Height = lastViewportHeight;
             if (sharedSlot != null)
-                sharedHost.ResizeSlot(sharedSlot, Width, Height);
+            {
+                bool resized = sharedHost.ResizeSlot(sharedSlot, lastViewportWidth, lastViewportHeight);
+                Width = resized ? lastViewportWidth : sharedSlot.Content.width;
+                Height = resized ? lastViewportHeight : sharedSlot.Content.height;
+            }
             else
+            {
+                Width = lastViewportWidth;
+                Height = lastViewportHeight;
                 browser?.Resize(Width, Height);
+            }
+
             OnViewportResized?.Invoke(Width, Height);
         }
 

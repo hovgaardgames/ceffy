@@ -54,13 +54,14 @@ If the native runtime fails to load after a Git installation, confirm that Git L
 
 Enable **Use Shared Instance** on a `CeffyInstance` when you have many small UI elements (nameplates, labels, tooltips, context menus) and don't want one browser per element.
 
-Every shared instance runs as an isolated iframe inside a single shared browser and renders into its own region of one shared texture. Unity still owns each element's position, and the page gets the same `window.ceffy` API as in a dedicated instance, so the same page works in either mode.
+Every shared instance runs as its own iframe inside a single shared browser and renders into its own region of one shared texture. Unity still owns each element's position, and the page gets the same `window.ceffy` API as in a dedicated instance, so the same page works in either mode.
 
 - Size the element with **Width**/**Height** and turn off **Auto Resize To Rect Transform** for world-anchored elements; their on-screen size changes constantly and each change would move them in the shared texture.
-- Messages and JavaScript sent before the page has loaded are queued.
+- You can call `SendToCeffy` and `ExecuteJS` right away. Both wait for the page to load, and a message also waits until the page sets `window.ceffy.onMessageFromUnity`. Calling `Navigate` drops anything still waiting, since it belonged to the previous page.
 - For world-anchored UI, project the element onto a screen-space canvas each frame (see the Shared Instance Demo's `DemoFollowTarget`).
 - Zoom is not supported. JavaScript execution and messaging require pages from the same origin as the shared host, which holds for `streaming-assets://` and `file://` pages.
 - The shared texture defaults to 2048×2048; set `CeffyInstance.SharedAtlasWidth`/`SharedAtlasHeight` before the first shared instance is enabled to change it. Instances that don't fit log an error and stay blank.
+- Shared pages are not sandboxed from each other. They get separate iframes, but they run in one browser with web security turned off, so any shared page can reach the others. Put untrusted or third-party content in a dedicated instance.
 
 Use a transparent page background and lay the page out at the instance's Width/Height.
 
