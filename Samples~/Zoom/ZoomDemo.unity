@@ -528,7 +528,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e293089d386b58b428868fd39a4db5fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Zoom
-  webBrowser: {fileID: 915871243}
+  ceffyInstance: {fileID: 915871243}
 --- !u!114 &915871243 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6142037326476938070, guid: c2f61ea0fdd444b45b9a4fd6ed9dd478, type: 3}
@@ -539,7 +539,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8372610f042b2dc4d802b5476bc62c87, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WebBrowser
+  m_EditorClassIdentifier: Assembly-CSharp::CeffyInstance
 --- !u!1001 &719185856941602747
 PrefabInstance:
   m_ObjectHideFlags: 0

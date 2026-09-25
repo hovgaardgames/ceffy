@@ -12,7 +12,7 @@ namespace Ceffy.Tests.Editor
         [TestCase("file:///C:/Pages/index.html")]
         public void TransformUrl_LeavesStandardUrlsUnchanged(string url)
         {
-            Assert.AreEqual(url, WebBrowser.TransformUrl(url));
+            Assert.AreEqual(url, CeffyInstance.TransformUrl(url));
         }
 
         [Test]
@@ -22,7 +22,7 @@ namespace Ceffy.Tests.Editor
                 Path.Combine(Application.streamingAssetsPath, "Pages/My Page.html"));
             var expected = "file:///" + fullPath.Replace("\\", "/").Replace(" ", "%20");
 
-            var transformed = WebBrowser.TransformUrl("streaming-assets://Pages/My Page.html");
+            var transformed = CeffyInstance.TransformUrl("streaming-assets://Pages/My Page.html");
 
             Assert.AreEqual(expected, transformed);
         }

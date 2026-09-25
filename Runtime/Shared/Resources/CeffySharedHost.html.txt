@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Ceffy Shared Host</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+    }
+    #root {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+    }
+    iframe.ceffy-slot {
+      position: absolute;
+      border: 0;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+(function () {
+  const root = document.getElementById("root");
+  /** @type {Map<string, HTMLIFrameElement>} */
+  const slots = new Map();
+
+  // Values match Ceffy.LogLevel.
+  const consoleLevels = { debug: 1, log: 2, info: 2, warn: 3, error: 4 };
+
+  function sendToUnity(payload) {
+    window.ceffy.SendToUnity(JSON.stringify(payload));
+  }
+
+  function stringify(value) {
+    if (typeof value === "string") return value;
+    try { return JSON.stringify(value); } catch { return String(value); }
+  }
+
+  // Gives the iframe page the same window.ceffy API a dedicated browser has, routed through this host.
+  // Requires same-origin access to the iframe (true for file:// pages).
+  function installShim(id, iframe) {
+    try {
+      const win = iframe.contentWindow;
+      if (!win) return;
+
+      const previousHandler = win.ceffy && win.ceffy.onMessageFromUnity
+        ? win.ceffy.onMessageFromUnity
+        : null;
+
+      win.ceffy = {
+        SendToUnity: function (data) {
+          sendToUnity({ type: "msg", id: id, data: stringify(data) });
+        },
+        onMessageFromUnity: previousHandler
+      };
+
+      Object.keys(consoleLevels).forEach(function (method) {
+        const original = win.console[method];
+        win.console[method] = function () {
+          const text = Array.prototype.map.call(arguments, stringify).join(" ");
+          sendToUnity({ type: "console", id: id, level: consoleLevels[method], data: text, src: win.location.href });
+          if (original) original.apply(win.console, arguments);
+        };
+      });
+    } catch (err) {
+      console.warn("[CeffySharedHost] Failed to install iframe shim for", id, err);
+    }
+  }
+
+  function applyLayout(iframe, msg) {
+    iframe.style.left = msg.x + "px";
+    iframe.style.top = msg.y + "px";
+    iframe.style.width = msg.w + "px";
+    iframe.style.height = msg.h + "px";
+  }
+
+  function addSlot(msg) {
+    const id = msg.id;
+    removeSlot(id);
+
+    const iframe = document.createElement("iframe");
+    iframe.className = "ceffy-slot";
+    iframe.setAttribute("allowtransparency", "true");
+    iframe.setAttribute("scrolling", "no");
+    applyLayout(iframe, msg);
+    slots.set(id, iframe);
+
+    iframe.addEventListener("load", function () {
+      installShim(id, iframe);
+      sendToUnity({ type: "loaded", id: id });
+    });
+
+    iframe.src = msg.src || "about:blank";
+    root.appendChild(iframe);
+  }
+
+  function removeSlot(id) {
+    const iframe = slots.get(id);
+    if (!iframe) return;
+    iframe.remove();
+    slots.delete(id);
+  }
+
+  function withSlot(id, action) {
+    const iframe = slots.get(id);
+    if (!iframe) return;
+    try {
+      action(iframe);
+    } catch (err) {
+      console.warn("[CeffySharedHost] Slot", id, "failed:", err);
+    }
+  }
+
+  function blurAll() {
+    if (document.activeElement) document.activeElement.blur();
+    window.focus();
+  }
+
+  function handleUnityMessage(raw) {
+    const msg = JSON.parse(raw);
+    switch (msg.type) {
+      case "add":
+        addSlot(msg);
+        break;
+      case "remove":
+        removeSlot(msg.id);
+        break;
+      case "layout":
+        withSlot(msg.id, function (iframe) { applyLayout(iframe, msg); });
+        break;
+      case "navigate":
+        withSlot(msg.id, function (iframe) { iframe.src = msg.src || "about:blank"; });
+        break;
+      case "msg":
+        withSlot(msg.id, function (iframe) {
+          const win = iframe.contentWindow;
+          if (win && win.ceffy && typeof win.ceffy.onMessageFromUnity === "function")
+            win.ceffy.onMessageFromUnity(msg.data);
+        });
+        break;
+      case "exec":
+        withSlot(msg.id, function (iframe) { iframe.contentWindow.eval(msg.data); });
+        break;
+      case "focus":
+        withSlot(msg.id, function (iframe) {
+          iframe.focus();
+          if (iframe.contentWindow) iframe.contentWindow.focus();
+        });
+        break;
+      case "blur":
+        blurAll();
+        break;
+    }
+  }
+
+  function wireCeffy() {
+    if (!window.ceffy) return false;
+    window.ceffy.onMessageFromUnity = handleUnityMessage;
+    sendToUnity({ type: "ready" });
+    return true;
+  }
+
+  if (!wireCeffy()) {
+    let tries = 0;
+    const timer = setInterval(function () {
+      tries++;
+      if (wireCeffy() || tries > 100) clearInterval(timer);
+    }, 50);
+  }
+})();
+  </script>
+</body>
+</html>

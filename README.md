@@ -34,10 +34,24 @@ If the native runtime fails to load after a Git installation, confirm that Git L
 
 ## Quick Start
 
-1. Drag `Packages/Ceffy/Runtime/Prefabs/CeffyScreenSpace.prefab` into a scene.
-2. Set **Start Url** on its `WebBrowser` component.
+1. Add a `CeffyInstance` component to a GameObject. At runtime it adds the `RawImage` and `CeffyInstanceView` it renders through, and becomes its own screen-space canvas if it isn't already under one. Alternatively, drag `Packages/Ceffy/Runtime/Prefabs/CeffyScreenSpace.prefab` into a scene for a full-screen setup.
+2. Set **Start Url** on the `CeffyInstance`.
 3. Use a normal URL or `streaming-assets://path/to/index.html` for content under `Assets/StreamingAssets`.
 4. Add `using Ceffy;` when accessing Ceffy components from C#.
+
+## Shared Instances
+
+Enable **Use Shared Instance** on a `CeffyInstance` when you have many small UI elements (nameplates, labels, tooltips, context menus) and don't want one browser per element.
+
+Every shared instance runs as an isolated iframe inside a single shared browser and renders into its own region of one shared texture. Unity still owns each element's position, and the page gets the same `window.ceffy` API as in a dedicated instance, so the same page works in either mode.
+
+- Size the element with **Width**/**Height** and turn off **Auto Resize To Rect Transform** for world-anchored elements; their on-screen size changes constantly and each change would move them in the shared texture.
+- Messages and JavaScript sent before the page has loaded are queued.
+- For world-anchored UI, project the element onto a screen-space canvas each frame (see the Shared Instance Demo's `DemoFollowTarget`).
+- Zoom is not supported. JavaScript execution and messaging require pages from the same origin as the shared host, which holds for `streaming-assets://` and `file://` pages.
+- The shared texture defaults to 2048×2048; set `CeffyInstance.SharedAtlasWidth`/`SharedAtlasHeight` before the first shared instance is enabled to change it. Instances that don't fit log an error and stay blank.
+
+Use a transparent page background and lay the page out at the instance's Width/Height.
 
 ## Samples
 

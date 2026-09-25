@@ -1,23 +1,44 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Ceffy
 {
     /// <summary>
-    /// Hosts an off-screen web browser and exposes its texture, navigation, messaging, zoom, and input APIs.
+    /// Shows a web page on a uGUI RawImage and exposes navigation, messaging, zoom, and input APIs.
+    /// At runtime this component adds the <see cref="RawImage"/> and <see cref="CeffyInstanceView"/> it
+    /// renders through, plus a Canvas when the GameObject is not already under one. Those display
+    /// components are not serialized into scenes or prefabs.
     /// </summary>
-    public class WebBrowser : MonoBehaviour
+    [DisallowMultipleComponent]
+    public class CeffyInstance : MonoBehaviour
     {
         /// <summary>
-        /// Port used for remote debugging. Default: 9222. Set before any WebBrowser is enabled to override.
+        /// Port used for remote debugging. Default: 9222. Set before any CeffyInstance is enabled to override.
         /// </summary>
         public static int RemoteDebuggingPort = 9222;
 
+        /// <summary>
+        /// Size of the texture shared by all instances with <see cref="UseSharedInstance"/> enabled.
+        /// Set before the first shared instance is enabled to override.
+        /// </summary>
+        public static int SharedAtlasWidth = 2048;
+
+        /// <inheritdoc cref="SharedAtlasWidth"/>
+        public static int SharedAtlasHeight = 2048;
+
         public string StartUrl = "";
+
+        [Tooltip("Run this page in a browser shared with every other CeffyInstance that has this enabled, " +
+                 "instead of starting a dedicated one. Each page stays isolated in its own iframe and gets its own " +
+                 "region of one shared texture. Recommended for many small UI elements such as nameplates, labels, " +
+                 "and tooltips. Leave off for full-screen or heavy UIs. Zoom is not supported in shared mode. " +
+                 "Changes take effect the next time the component is enabled.")]
+        public bool UseSharedInstance = false;
+
         public float ResizeDelay = 0.25f;
 
         private static readonly Regex StreamingAssetsUrlRegex = new Regex(@"^streaming-assets:(//)?(.*)$", RegexOptions.IgnoreCase);
@@ -25,10 +46,11 @@ namespace Ceffy
         [Tooltip("Log detailed Ceffy lifecycle and diagnostics to the Unity console. Errors and warnings are always logged.")]
         public bool VerboseLogging = false;
 
-        [Tooltip("Enable Chrome DevTools remote debugging on port 9222. Override port via WebBrowser.RemoteDebuggingPort.")]
+        [Tooltip("Enable Chrome DevTools remote debugging on port 9222. Override port via CeffyInstance.RemoteDebuggingPort.")]
         public bool RemoteDebugging = false;
 
-        [Tooltip("Automatically resize the browser viewport to match the target RectTransform (if available).")]
+        [Tooltip("Automatically resize the browser viewport to match this RectTransform's size in screen pixels. " +
+                 "When off, the RectTransform is sized to Width x Height instead.")]
         public bool AutoResizeToRectTransform = true;
 
         [Header("Input")]
@@ -54,24 +76,32 @@ namespace Ceffy
         public event Action<int, int> OnViewportResized;
 
         /// <summary>
-        /// Fired when CEF begins an HTML5 drag operation inside the browser.
+        /// Fired when CEF begins an HTML5 drag operation inside the page.
         /// Parameters: drag-start x, drag-start y, allowed DragOperation flags.
-        /// The display component (or any subscriber) must respond by driving the
+        /// The view (or any subscriber) must respond by driving the
         /// drag lifecycle via SendDragTarget* and DragSourceEnded*.
         /// </summary>
         public event Action<int, int, DragOperation> OnDragStart;
 
         /// <summary>
-        /// Gets the browser's external texture, or null until native initialization completes.
+        /// Gets the texture the page renders into, or null until it is available.
+        /// Shared instances return the shared texture; use <see cref="UvRect"/> to sample this page's region.
         /// </summary>
-        public Texture2D Texture { get; private set; }
+        public Texture2D Texture => isShared ? (sharedSlot != null ? sharedHost.Texture : null) : browser?.Texture;
 
-        private static readonly Dictionary<int, WebBrowser> activeBrowsers = new();
+        /// <summary>
+        /// UV rect of this page within <see cref="Texture"/>, already flipped for RawImage.
+        /// </summary>
+        public Rect UvRect => isShared && sharedSlot != null
+            ? CeffyUv.GetUvRect(sharedSlot.Content, sharedHost.Browser.Width, sharedHost.Browser.Height)
+            : CeffyUv.FullTexture;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => activeBrowsers.Clear();
+        private CeffyBrowser browser;
+        private CeffySharedHost sharedHost;
+        private CeffySharedHost.Slot sharedSlot;
+        private bool isShared;
+        private bool warnedSharedZoom;
 
-        private RectTransform targetRectTransform;
         private RectTransform cachedRectTransform;
         private Canvas cachedCanvas;
         private Camera cachedCanvasCamera;
@@ -79,9 +109,40 @@ namespace Ceffy
         private int lastViewportWidth = -1;
         private int lastViewportHeight = -1;
         private float resizeTimer;
-        private int browserId = -1;
-        private int textureWidth;
-        private int textureHeight;
+
+        private void Reset()
+        {
+            EnsureCanvas();
+        }
+
+        private void Awake()
+        {
+            EnsureCanvas();
+            EnsureDisplayComponents();
+        }
+
+        /// <summary>
+        /// A RawImage only renders under a Canvas, so a CeffyInstance added outside one becomes its own
+        /// screen-space overlay canvas.
+        /// </summary>
+        private void EnsureCanvas()
+        {
+            if (GetComponentInParent<Canvas>(true))
+                return;
+
+            var canvas = gameObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            gameObject.AddComponent<CanvasScaler>();
+            gameObject.AddComponent<GraphicRaycaster>();
+        }
+
+        private void EnsureDisplayComponents()
+        {
+            if (!GetComponent<RawImage>())
+                gameObject.AddComponent<RawImage>();
+            if (!GetComponent<CeffyInstanceView>())
+                gameObject.AddComponent<CeffyInstanceView>();
+        }
 
         private void OnEnable()
         {
@@ -91,177 +152,68 @@ namespace Ceffy
             var remotePort = RemoteDebugging ? RemoteDebuggingPort : 0;
             WebBrowserRuntime.Instance.EnsureStarted(remotePort);
 
+            isShared = UseSharedInstance;
             CacheViewportRefs();
             UpdateViewportSizeIfNeeded(true);
-            StartCoroutine(Init());
-            StartCoroutine(EndOfFrameRequestLoop());
-        }
 
-        private IEnumerator Init()
-        {
-            yield return new WaitUntil(() => WebBrowserRuntime.Instance.IsReady);
-
-            var initialUrl = TransformUrl(StartUrl);
-            browserId = WebBrowserRuntime.Instance.CreateBrowser(Width, Height, initialUrl);
-            if (browserId < 0)
+            if (isShared)
             {
-                Debug.LogError("WebBrowser.Init failed: CreateBrowser returned invalid ID.");
-                yield break;
-            }
-            activeBrowsers[browserId] = this;
-
-            textureWidth = Width;
-            textureHeight = Height;
-
-            // Wait for the native browser to be fully ready before exposing the
-            // texture.  Ceffy_EnsureInitialized returns 0 immediately when CEF
-            // hasn't finished its async CreateBrowser yet (e.g. it's still
-            // closing the previous browser after a scene reload).  Yielding
-            // between retries keeps the main thread responsive while we wait.
-            float timeout = 10f;
-            float elapsed = 0f;
-            while (elapsed < timeout)
-            {
-                if (NativeBridge.Ceffy_EnsureInitialized(browserId) != 0)
-                    break;
-                yield return null;
-                elapsed += Time.unscaledDeltaTime;
-            }
-
-            IntPtr sharedHandle = NativeBridge.Ceffy_GetSharedHandle(browserId);
-            if (sharedHandle != IntPtr.Zero)
-            {
-                Texture = D3D11SharedTexture.CreateFromSharedHandle(sharedHandle, textureWidth, textureHeight);
+                sharedHost = CeffySharedHost.GetOrCreate();
+                sharedSlot = sharedHost.Register(this, TransformUrl(StartUrl));
             }
             else
             {
-                Debug.LogWarning("[Ceffy] Ceffy_GetSharedHandle returned null. Texture will not be available.");
+                browser = new CeffyBrowser(Width, Height);
+                browser.MessageReceived += RaiseMessageFromCeffy;
+                browser.ConsoleMessage += RaiseConsoleMessage;
+                browser.DragStarted += RaiseDragStart;
+                StartCoroutine(browser.Create(TransformUrl(StartUrl)));
+                StartCoroutine(EndOfFrameRequestLoop());
             }
         }
 
         private void OnDisable()
         {
             StopAllCoroutines();
-            if (browserId >= 0) 
+            if (sharedSlot != null)
             {
-                activeBrowsers.Remove(browserId);
-                NativeBridge.Ceffy_CloseBrowser(browserId);
-                browserId = -1;
+                if (sharedHost)
+                    sharedHost.Unregister(sharedSlot);
+                sharedSlot = null;
             }
-            if (Texture)
+            sharedHost = null;
+
+            if (browser != null)
             {
-                Destroy(Texture);
-                Texture = null;
+                browser.MessageReceived -= RaiseMessageFromCeffy;
+                browser.ConsoleMessage -= RaiseConsoleMessage;
+                browser.DragStarted -= RaiseDragStart;
+                browser.Close();
+                browser = null;
             }
         }
-        
+
         private void Update()
         {
             UpdateViewportSizeIfNeeded(false);
-            PollCallbacks();
-        }
-
-        private void PollCallbacks()
-        {
-            if (browserId < 0) return;
-
-            for (int i = 0; i < 100; i++)
-            {
-                if (!NativeBridge.PollCallback(out int type, out int cbBrowserId, out string data))
-                    break;
-                if (activeBrowsers.TryGetValue(cbBrowserId, out var target))
-                    target.DispatchCallback(type, data);
-            }
-        }
-
-        private void DispatchCallback(int type, string data)
-        {
-            if (type == 1)
-                HandleConsoleMessageJson(data);
-            else if (type == 2)
-                HandleMessageFromCeffy(data);
-            else if (type == 3)
-                HandleDragStart(data);
-            else if (type == 4)
-                Debug.Log(data);
-        }
-
-        private void HandleConsoleMessageJson(string json)
-        {
-            try
-            {
-                int level = ExtractJsonInt(json, "level");
-                string message = ExtractJsonString(json, "message");
-                string source = ExtractJsonString(json, "source");
-                int line = ExtractJsonInt(json, "line");
-                HandleConsoleMessage((LogLevel)level, message, source, line);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[Ceffy] Failed to parse console message: {ex.Message}");
-            }
-        }
-
-        private static int ExtractJsonInt(string json, string key)
-        {
-            var pattern = "\"" + key + "\":";
-            int idx = json.IndexOf(pattern);
-            if (idx < 0) return 0;
-            idx += pattern.Length;
-            while (idx < json.Length && json[idx] == ' ') idx++;
-            int end = idx;
-            while (end < json.Length && (char.IsDigit(json[end]) || json[end] == '-')) end++;
-            if (int.TryParse(json.Substring(idx, end - idx), out int val)) return val;
-            return 0;
-        }
-
-        private static string ExtractJsonString(string json, string key)
-        {
-            var pattern = "\"" + key + "\":\"";
-            int idx = json.IndexOf(pattern);
-            if (idx < 0) return "";
-            idx += pattern.Length;
-            var sb = new System.Text.StringBuilder();
-            for (int i = idx; i < json.Length; i++)
-            {
-                if (json[i] == '\\' && i + 1 < json.Length)
-                {
-                    i++;
-                    switch (json[i])
-                    {
-                        case '"': sb.Append('"'); break;
-                        case '\\': sb.Append('\\'); break;
-                        case 'n': sb.Append('\n'); break;
-                        case 'r': sb.Append('\r'); break;
-                        case 't': sb.Append('\t'); break;
-                        default: sb.Append(json[i]); break;
-                    }
-                }
-                else if (json[i] == '"')
-                {
-                    break;
-                }
-                else
-                {
-                    sb.Append(json[i]);
-                }
-            }
-            return sb.ToString();
+            if (browser != null)
+                CeffyBrowser.PollCallbacks();
         }
 
         /// <summary>
         /// Refresh the external texture reference so Unity picks up GPU updates.
-        /// Call from display code to avoid stalling WebBrowser.Update.
+        /// Called by <see cref="CeffyInstanceView"/> when the texture changes.
         /// </summary>
         public void UpdateTexture()
         {
-            if (Texture)
-                Texture.UpdateExternalTexture(Texture.GetNativeTexturePtr());
+            if (isShared)
+                sharedHost?.Browser.UpdateTexture();
+            else
+                browser?.UpdateTexture();
         }
 
         /// <summary>
-        /// Request CEF's next frame after Unity has finished rendering.
-        /// Only requests when the browser is active and visible so we don't drive CEF when the UI is hidden.
+        /// Request CEF's next frame after Unity has finished rendering, only while this instance is enabled.
         /// </summary>
         private IEnumerator EndOfFrameRequestLoop()
         {
@@ -269,8 +221,43 @@ namespace Ceffy
             while (true)
             {
                 yield return waitForEndOfFrame;
-                if (browserId >= 0 && gameObject.activeInHierarchy && enabled)
-                    NativeBridge.Ceffy_RequestFrame(browserId);
+                browser?.RequestFrame();
+            }
+        }
+
+        internal void RaiseMessageFromCeffy(string message)
+        {
+            try
+            {
+                OnMessageFromCeffy?.Invoke(message);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+        }
+
+        internal void RaiseConsoleMessage(LogLevel level, string message, string source, int line)
+        {
+            try
+            {
+                OnConsoleMessage?.Invoke(level, message, source, line);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+        }
+
+        internal void RaiseDragStart(int x, int y, DragOperation allowedOps)
+        {
+            try
+            {
+                OnDragStart?.Invoke(x, y, allowedOps);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
             }
         }
 
@@ -286,8 +273,16 @@ namespace Ceffy
             var transformedUrl = TransformUrl(url);
             if (WebBrowserRuntime.VerboseLogging)
                 Debug.Log($"[Ceffy] Navigating to: {transformedUrl}");
-            if (browserId >= 0)
-                NativeBridge.Ceffy_Navigate(browserId, transformedUrl);
+
+            if (isShared)
+            {
+                if (sharedSlot != null)
+                    sharedHost.Navigate(sharedSlot, transformedUrl);
+            }
+            else
+            {
+                browser?.Navigate(transformedUrl);
+            }
         }
 
         /// <summary>
@@ -326,69 +321,50 @@ namespace Ceffy
             return originalUrl;
         }
 
+        /// <summary>
+        /// Run JavaScript in the page. Shared instances queue the code until their page has loaded,
+        /// and can only reach pages served from the same origin as the shared host (e.g. file:// pages).
+        /// </summary>
         public void ExecuteJS(string code)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_ExecuteJS(browserId, code);
+            if (isShared)
+            {
+                if (sharedSlot != null)
+                    sharedHost.ExecuteJS(sharedSlot, code);
+            }
+            else
+            {
+                browser?.ExecuteJS(code);
+            }
         }
 
+        /// <summary>
+        /// Send a message to the page's window.ceffy.onMessageFromUnity handler.
+        /// Shared instances queue messages until their page has loaded.
+        /// </summary>
         public void SendToCeffy(string message)
         {
-            if (browserId < 0)
+            if (isShared)
             {
-                Debug.LogWarning("WebBrowser.SendToCeffy called before browser is initialized.");
+                if (sharedSlot != null)
+                    sharedHost.SendMessage(sharedSlot, message);
                 return;
             }
 
-            NativeBridge.Ceffy_SendMessage(browserId, message);
-        }
+            if (browser == null || !browser.IsCreated)
+            {
+                Debug.LogWarning("CeffyInstance.SendToCeffy called before browser is initialized.");
+                return;
+            }
 
-        private void HandleMessageFromCeffy(string message)
-        {
-            try
-            {
-                OnMessageFromCeffy?.Invoke(message);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogException(ex);
-            }
-        }
-
-        private void HandleConsoleMessage(LogLevel level, string message, string source, int line)
-        {
-            try
-            {
-                OnConsoleMessage?.Invoke(level, message, source, line);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogException(ex);
-            }
-        }
-
-        private void HandleDragStart(string json)
-        {
-            try
-            {
-                int x = ExtractJsonInt(json, "x");
-                int y = ExtractJsonInt(json, "y");
-                int ops = ExtractJsonInt(json, "ops");
-                OnDragStart?.Invoke(x, y, (DragOperation)ops);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[Ceffy] Failed to parse drag start: {ex.Message}");
-            }
+            browser.SendMessage(message);
         }
 
         #region Viewport Resize
 
         private void CacheViewportRefs()
         {
-            cachedRectTransform = targetRectTransform != null
-                ? targetRectTransform
-                : GetComponent<RectTransform>();
+            cachedRectTransform = GetComponent<RectTransform>();
 
             if (cachedRectTransform)
             {
@@ -436,18 +412,10 @@ namespace Ceffy
         {
             Width = lastViewportWidth;
             Height = lastViewportHeight;
-            if (browserId >= 0)
-            {
-                IntPtr newHandle = NativeBridge.Ceffy_Resize(browserId, Width, Height);
-                if (newHandle != IntPtr.Zero)
-                {
-                    textureWidth = Width;
-                    textureHeight = Height;
-                    if (Texture) 
-                        Destroy(Texture);
-                    Texture = D3D11SharedTexture.CreateFromSharedHandle(newHandle, textureWidth, textureHeight);
-                }
-            }
+            if (sharedSlot != null)
+                sharedHost.ResizeSlot(sharedSlot, Width, Height);
+            else
+                browser?.Resize(Width, Height);
             OnViewportResized?.Invoke(Width, Height);
         }
 
@@ -483,11 +451,18 @@ namespace Ceffy
         /// <summary>
         /// Set the browser zoom level (0.0 = 100%). Uses Chrome's logarithmic scale:
         /// zoomPercent = 100 * 1.2^zoomLevel. Use <see cref="SetZoomPercent"/> for a simpler API.
+        /// Not supported for shared instances.
         /// </summary>
         public void SetZoomLevel(double zoomLevel)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_SetZoomLevel(browserId, zoomLevel);
+            if (isShared)
+            {
+                if (!warnedSharedZoom)
+                    Debug.LogWarning($"[Ceffy] Zoom is not supported for shared instances ('{name}').");
+                warnedSharedZoom = true;
+                return;
+            }
+            browser?.SetZoomLevel(zoomLevel);
         }
 
         /// <summary>
@@ -495,7 +470,7 @@ namespace Ceffy
         /// </summary>
         public double GetZoomLevel()
         {
-            return browserId >= 0 ? NativeBridge.Ceffy_GetZoomLevel(browserId) : 0.0;
+            return isShared || browser == null ? 0.0 : browser.GetZoomLevel();
         }
 
         public void SetZoomPercent(double percent)
@@ -513,21 +488,25 @@ namespace Ceffy
         #region Mouse Input
         
         /// <summary>
-        /// Send a mouse move event. Coordinates are relative to the browser view (0,0 = top-left).
+        /// Send a mouse move event. Coordinates are relative to the page view (0,0 = top-left).
         /// </summary>
         public void SendMouseMove(int x, int y, EventFlags modifiers = EventFlags.None)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_SendMouseMove(browserId, x, y, (int)modifiers);
+            if (isShared)
+                sharedHost?.SendMouseMove(sharedSlot, x, y, modifiers);
+            else
+                browser?.SendMouseMove(x, y, modifiers);
         }
         
         /// <summary>
-        /// Send a mouse leave event (cursor left the browser view).
+        /// Send a mouse leave event (cursor left the page view).
         /// </summary>
         public void SendMouseLeave()
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_SendMouseLeave(browserId);
+            if (isShared)
+                sharedHost?.SendMouseLeave(sharedSlot);
+            else
+                browser?.SendMouseLeave();
         }
         
         /// <summary>
@@ -535,8 +514,10 @@ namespace Ceffy
         /// </summary>
         public void SendMouseDown(int x, int y, MouseButton button = MouseButton.Left, int clickCount = 1, EventFlags modifiers = EventFlags.None)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_SendMouseClick(browserId, x, y, (int)button, 0, clickCount, (int)modifiers);
+            if (isShared)
+                sharedHost?.SendMouseClick(sharedSlot, x, y, button, false, clickCount, modifiers);
+            else
+                browser?.SendMouseClick(x, y, button, false, clickCount, modifiers);
         }
         
         /// <summary>
@@ -544,8 +525,10 @@ namespace Ceffy
         /// </summary>
         public void SendMouseUp(int x, int y, MouseButton button = MouseButton.Left, int clickCount = 1, EventFlags modifiers = EventFlags.None)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_SendMouseClick(browserId, x, y, (int)button, 1, clickCount, (int)modifiers);
+            if (isShared)
+                sharedHost?.SendMouseClick(sharedSlot, x, y, button, true, clickCount, modifiers);
+            else
+                browser?.SendMouseClick(x, y, button, true, clickCount, modifiers);
         }
         
         /// <summary>
@@ -553,8 +536,10 @@ namespace Ceffy
         /// </summary>
         public void SendMouseWheel(int x, int y, int deltaX, int deltaY, EventFlags modifiers = EventFlags.None)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_SendMouseWheel(browserId, x, y, deltaX, deltaY, (int)modifiers);
+            if (isShared)
+                sharedHost?.SendMouseWheel(sharedSlot, x, y, deltaX, deltaY, modifiers);
+            else
+                browser?.SendMouseWheel(x, y, deltaX, deltaY, modifiers);
         }
         
         #endregion
@@ -567,8 +552,10 @@ namespace Ceffy
         /// </summary>
         public void SendDragTargetEnter(int x, int y, EventFlags modifiers = EventFlags.None, DragOperation allowedOps = DragOperation.Every)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_DragTargetDragEnter(browserId, x, y, (int)modifiers, (int)allowedOps);
+            if (isShared)
+                sharedHost?.SendDragTargetEnter(sharedSlot, x, y, modifiers, allowedOps);
+            else
+                browser?.SendDragTargetEnter(x, y, modifiers, allowedOps);
         }
 
         /// <summary>
@@ -576,17 +563,21 @@ namespace Ceffy
         /// </summary>
         public void SendDragTargetOver(int x, int y, EventFlags modifiers = EventFlags.None, DragOperation allowedOps = DragOperation.Every)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_DragTargetDragOver(browserId, x, y, (int)modifiers, (int)allowedOps);
+            if (isShared)
+                sharedHost?.SendDragTargetOver(sharedSlot, x, y, modifiers, allowedOps);
+            else
+                browser?.SendDragTargetOver(x, y, modifiers, allowedOps);
         }
 
         /// <summary>
-        /// Notify CEF that the dragged item has left the browser viewport.
+        /// Notify CEF that the dragged item has left the page view.
         /// </summary>
         public void SendDragTargetLeave()
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_DragTargetDragLeave(browserId);
+            if (isShared)
+                sharedHost?.SendDragTargetLeave(sharedSlot);
+            else
+                browser?.SendDragTargetLeave();
         }
 
         /// <summary>
@@ -594,8 +585,10 @@ namespace Ceffy
         /// </summary>
         public void SendDragTargetDrop(int x, int y, EventFlags modifiers = EventFlags.None)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_DragTargetDrop(browserId, x, y, (int)modifiers);
+            if (isShared)
+                sharedHost?.SendDragTargetDrop(sharedSlot, x, y, modifiers);
+            else
+                browser?.SendDragTargetDrop(x, y, modifiers);
         }
 
         /// <summary>
@@ -605,8 +598,10 @@ namespace Ceffy
         /// </summary>
         public void DragSourceEndedAt(int x, int y)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_DragSourceEndedAt(browserId, x, y);
+            if (isShared)
+                sharedHost?.DragSourceEndedAt(sharedSlot, x, y);
+            else
+                browser?.DragSourceEndedAt(x, y);
         }
 
         /// <summary>
@@ -614,13 +609,27 @@ namespace Ceffy
         /// </summary>
         public void DragSourceSystemDragEnded()
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_DragSourceSystemDragEnded(browserId);
+            if (isShared)
+                sharedHost?.DragSourceSystemDragEnded(sharedSlot);
+            else
+                browser?.DragSourceSystemDragEnded();
         }
 
         #endregion
 
         #region Keyboard Input
+
+        private CeffyBrowser KeyboardTarget => isShared ? (sharedSlot != null ? sharedHost.Browser : null) : browser;
+
+        /// <summary>
+        /// Gives or removes keyboard focus. Shared instances also move DOM focus to their iframe,
+        /// since all shared pages receive key events through the same browser.
+        /// </summary>
+        internal void SetKeyboardFocus(bool focused)
+        {
+            if (isShared)
+                sharedHost?.SetFocus(sharedSlot, focused);
+        }
         
         /// <summary>
         /// Send a keyboard event to the browser.
@@ -632,8 +641,7 @@ namespace Ceffy
         /// <param name="isSystemKey">True if this is a system key (e.g., Alt+key).</param>
         public void SendKeyEvent(KeyEventType eventType, int windowsKeyCode, int nativeKeyCode, EventFlags modifiers = EventFlags.None, bool isSystemKey = false)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_SendKeyEvent(browserId, (int)eventType, windowsKeyCode, nativeKeyCode, (int)modifiers, isSystemKey ? 1 : 0);
+            KeyboardTarget?.SendKeyEvent(eventType, windowsKeyCode, nativeKeyCode, modifiers, isSystemKey);
         }
         
         /// <summary>
@@ -643,8 +651,7 @@ namespace Ceffy
         /// <param name="modifiers">Keyboard modifiers.</param>
         public void SendCharacter(char character, EventFlags modifiers = EventFlags.None)
         {
-            if (browserId >= 0)
-                NativeBridge.Ceffy_SendKeyEvent(browserId, (int)KeyEventType.Char, character, 0, (int)modifiers, 0);
+            KeyboardTarget?.SendKeyEvent(KeyEventType.Char, character, 0, modifiers, false);
         }
         
         /// <summary>
@@ -652,8 +659,7 @@ namespace Ceffy
         /// </summary>
         public void KeyDown(KeyCode key, EventFlags modifiers = EventFlags.None)
         {
-            if (browserId >= 0)
-                NativeBridge.SendKeyDown(browserId, key, modifiers);
+            KeyboardTarget?.KeyDown(key, modifiers);
         }
         
         /// <summary>
@@ -661,8 +667,7 @@ namespace Ceffy
         /// </summary>
         public void KeyUp(KeyCode key, EventFlags modifiers = EventFlags.None)
         {
-            if (browserId >= 0)
-                NativeBridge.SendKeyUp(browserId, key, modifiers);
+            KeyboardTarget?.KeyUp(key, modifiers);
         }
 
         #endregion

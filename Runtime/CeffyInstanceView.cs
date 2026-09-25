@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -5,21 +6,21 @@ using UnityEngine.EventSystems;
 namespace Ceffy
 {
     /// <summary>
-    /// Displays a <see cref="WebBrowser"/> on a uGUI RawImage and forwards pointer and keyboard input.
+    /// Displays the <see cref="CeffyInstance"/> on the same GameObject through its RawImage and forwards
+    /// pointer and keyboard input to it. Added automatically by <see cref="CeffyInstance"/>.
     /// </summary>
-    [RequireComponent(typeof(RawImage))]
-    public class WebBrowserCanvasDisplay : MonoBehaviour
+    [DisallowMultipleComponent]
+    [RequireComponent(typeof(RawImage), typeof(CeffyInstance))]
+    public class CeffyInstanceView : MonoBehaviour
     {
-        [Tooltip("The WebBrowser component to display. If null, will search for one in the scene.")]
-        public WebBrowser webBrowser;
-
         [Tooltip("Enable debug logging for mouse events")]
         public bool debugMouseEvents = false;
         
+        private CeffyInstance instance;
         private RawImage rawImage;
         private RectTransform rectTransform;
-        private Canvas canvas;
         private Camera canvasCamera;
+        private bool hasGraphicRaycaster;
         private Texture2D lastTexture;
         private bool isPointerInside;
         private bool hasFocus;
@@ -40,33 +41,68 @@ namespace Ceffy
         
         private const string BROWSER_MATERIAL_NAME = "WebBrowserUIMaterial";
 
+        // One UI raycast per frame shared by all views, used to let the topmost view take the pointer.
+        private static readonly List<RaycastResult> raycastResults = new();
+        private static PointerEventData pointerEventData;
+        private static int raycastFrame = -1;
+        private static Vector2 raycastPosition;
+        private static GameObject topmostHit;
+        private static Texture2D transparentTexture;
+
+        private void Awake()
+        {
+            instance = GetComponent<CeffyInstance>();
+            rawImage = GetComponent<RawImage>();
+            rectTransform = transform as RectTransform;
+            rawImage.texture = GetTransparentTexture();
+            SetupBrowserMaterial();
+        }
+
         private void Start()
         {
-            if (!TryGetComponent(out rawImage))
-                rawImage = gameObject.AddComponent<RawImage>();
-            
-            rectTransform = transform as RectTransform;
-            canvas = GetComponentInParent<Canvas>();
+            var canvas = GetComponentInParent<Canvas>();
             if (canvas && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
-            {
                 canvasCamera = canvas.worldCamera;
-            }
+            hasGraphicRaycaster = GetComponentInParent<GraphicRaycaster>();
+        }
 
-            if (!webBrowser)
-            {
-                webBrowser = transform.parent.gameObject.GetComponent<WebBrowser>();
-                if (!webBrowser)
-                {
-                    Debug.LogWarning("WebBrowserCanvasDisplay: No WebBrowser found in scene. Please assign one manually.");
-                    return;
-                }
-            }
+        private void OnEnable()
+        {
+            instance.OnViewportResized += HandleViewportResized;
+            instance.OnDragStart += HandleDragStart;
+            ApplyFixedSize();
+        }
 
-            webBrowser.OnViewportResized += (w, h) => rawImage.rectTransform.sizeDelta = new Vector2(w, h);
-            webBrowser.OnDragStart += HandleDragStart;
-            rawImage.rectTransform.sizeDelta = new Vector2(webBrowser.Width, webBrowser.Height);
-            rawImage.texture = null;
-            SetupBrowserMaterial();
+        private void OnDisable()
+        {
+            instance.OnViewportResized -= HandleViewportResized;
+            instance.OnDragStart -= HandleDragStart;
+            if (isPointerInside)
+                HandlePointerExit();
+            SetFocus(false);
+            lastTexture = null;
+        }
+
+        private void HandleViewportResized(int width, int height) => ApplyFixedSize();
+
+        /// <summary>
+        /// Without auto-resize the page size is authored, so the rect follows it instead of the other way round.
+        /// </summary>
+        private void ApplyFixedSize()
+        {
+            if (!instance.AutoResizeToRectTransform && rectTransform)
+                rectTransform.sizeDelta = new Vector2(instance.Width, instance.Height);
+        }
+
+        private static Texture2D GetTransparentTexture()
+        {
+            if (transparentTexture)
+                return transparentTexture;
+
+            transparentTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false) { hideFlags = HideFlags.HideAndDontSave };
+            transparentTexture.SetPixel(0, 0, Color.clear);
+            transparentTexture.Apply();
+            return transparentTexture;
         }
         
         private void SetupBrowserMaterial()
@@ -79,7 +115,7 @@ namespace Ceffy
             }
             else
             {
-                Debug.LogWarning($"WebBrowserCanvasDisplay: Material '{BROWSER_MATERIAL_NAME}' not found in Resources. " +
+                Debug.LogWarning($"CeffyInstanceView: Material '{BROWSER_MATERIAL_NAME}' not found in Resources. " +
                                "Colors may appear incorrect in Linear color space mode.");
             }
         }
@@ -95,12 +131,13 @@ namespace Ceffy
 
         private void Update()
         {
-            if (!webBrowser || !rawImage || !gameObject.activeInHierarchy || !enabled)
-                return;
+            HandleMouseInput();
+        }
 
+        private void LateUpdate()
+        {
             UpdateMaterialForBackBuffer();
             UpdateTexture();
-            HandleMouseInput();
         }
 
         private void UpdateMaterialForBackBuffer()
@@ -122,14 +159,15 @@ namespace Ceffy
         
         private void UpdateTexture()
         {
-            Texture2D currentTexture = webBrowser.Texture;
-            if (currentTexture && currentTexture != lastTexture)
+            Texture2D currentTexture = instance.Texture;
+            if (currentTexture != lastTexture)
             {
-                webBrowser.UpdateTexture();
-                rawImage.texture = currentTexture;
-                rawImage.uvRect = new Rect(0, 1, 1, -1); // flip Y (browser origin is top-left)
+                if (currentTexture)
+                    instance.UpdateTexture();
+                rawImage.texture = currentTexture ? currentTexture : GetTransparentTexture();
                 lastTexture = currentTexture;
             }
+            rawImage.uvRect = currentTexture ? instance.UvRect : CeffyUv.FullTexture;
         }
 
         #region Mouse Input
@@ -137,26 +175,18 @@ namespace Ceffy
         private void HandleMouseInput()
         {
             Vector2 mousePos = WebBrowserInput.GetMousePosition();
-            
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                rectTransform, mousePos, canvasCamera, out Vector2 localPoint))
-            {
-                HandlePointerExit();
-                return;
-            }
-            
-            bool isInside = rectTransform.rect.Contains(localPoint);
+            bool isInside = IsPointerOver(mousePos);
             
             if (WebBrowserInput.GetMouseButtonDown(0))
-                hasFocus = isInside;
+                SetFocus(isInside);
             
             if (isInside != isPointerInside)
             {
-                isPointerInside = isInside;
                 if (isInside)
                 {
+                    isPointerInside = true;
                     if (debugMouseEvents)
-                        Debug.Log("[WebBrowserCanvasDisplay] Pointer entered");
+                        Debug.Log("[CeffyInstanceView] Pointer entered");
                 }
                 else
                 {
@@ -174,10 +204,10 @@ namespace Ceffy
             {
                 // Pointer re-entered during an active drag — restart drag target tracking.
                 isDragOutside = false;
-                webBrowser.SendDragTargetEnter(x, y, GetModifiers(), dragAllowedOps);
+                instance.SendDragTargetEnter(x, y, GetModifiers(), dragAllowedOps);
             }
 
-            if (webBrowser.InputMouseMove && mousePos != lastMousePosition)
+            if (instance.InputMouseMove && mousePos != lastMousePosition)
             {
                 lastMousePosition = mousePos;
                 
@@ -188,19 +218,19 @@ namespace Ceffy
                     if (isDragging)
                     {
                         if (debugMouseEvents)
-                            Debug.Log($"[WebBrowserCanvasDisplay] Drag over: ({x}, {y})");
-                        webBrowser.SendDragTargetOver(x, y, GetModifiers(), dragAllowedOps);
+                            Debug.Log($"[CeffyInstanceView] Drag over: ({x}, {y})");
+                        instance.SendDragTargetOver(x, y, GetModifiers(), dragAllowedOps);
                     }
                     else
                     {
                         if (debugMouseEvents)
-                            Debug.Log($"[WebBrowserCanvasDisplay] Mouse move: ({x}, {y})");
-                        webBrowser.SendMouseMove(x, y, GetModifiers());
+                            Debug.Log($"[CeffyInstanceView] Mouse move: ({x}, {y})");
+                        instance.SendMouseMove(x, y, GetModifiers());
                     }
                 }
             }
             
-            if (webBrowser.InputMouseClick)
+            if (instance.InputMouseClick)
             {
                 if (isDragging)
                 {
@@ -208,11 +238,11 @@ namespace Ceffy
                     if (WebBrowserInput.GetMouseButtonUp(0))
                     {
                         if (debugMouseEvents)
-                            Debug.Log($"[WebBrowserCanvasDisplay] Drag drop: ({x}, {y})");
+                            Debug.Log($"[CeffyInstanceView] Drag drop: ({x}, {y})");
                         if (!isDragOutside)
-                            webBrowser.SendDragTargetDrop(x, y, GetModifiers());
-                        webBrowser.DragSourceEndedAt(x, y);
-                        webBrowser.DragSourceSystemDragEnded();
+                            instance.SendDragTargetDrop(x, y, GetModifiers());
+                        instance.DragSourceEndedAt(x, y);
+                        instance.DragSourceSystemDragEnded();
                         isDragging = false;
                         isDragOutside = false;
                     }
@@ -231,21 +261,21 @@ namespace Ceffy
                             lastClickTime[button] = Time.unscaledTime;
                             
                             if (debugMouseEvents)
-                                Debug.Log($"[WebBrowserCanvasDisplay] Mouse down: button={button}, clicks={clickCount[button]}");
-                            webBrowser.SendMouseDown(x, y, ToMouseButton(button), clickCount[button], GetModifiers());
+                                Debug.Log($"[CeffyInstanceView] Mouse down: button={button}, clicks={clickCount[button]}");
+                            instance.SendMouseDown(x, y, ToMouseButton(button), clickCount[button], GetModifiers());
                         }
                         
                         if (WebBrowserInput.GetMouseButtonUp(button))
                         {
                             if (debugMouseEvents)
-                                Debug.Log($"[WebBrowserCanvasDisplay] Mouse up: button={button}");
-                            webBrowser.SendMouseUp(x, y, ToMouseButton(button), clickCount[button], GetModifiers());
+                                Debug.Log($"[CeffyInstanceView] Mouse up: button={button}");
+                            instance.SendMouseUp(x, y, ToMouseButton(button), clickCount[button], GetModifiers());
                         }
                     }
                 }
             }
             
-            if (webBrowser.InputMouseScroll)
+            if (instance.InputMouseScroll)
             {
                 Vector2 scrollDelta = WebBrowserInput.GetMouseScrollDelta();
                 if (scrollDelta != Vector2.zero)
@@ -255,48 +285,97 @@ namespace Ceffy
                     int deltaY = Mathf.RoundToInt(scrollDelta.y * 120);
                     
                     if (debugMouseEvents)
-                        Debug.Log($"[WebBrowserCanvasDisplay] Scroll: ({deltaX}, {deltaY})");
-                    webBrowser.SendMouseWheel(x, y, deltaX, deltaY, GetModifiers());
+                        Debug.Log($"[CeffyInstanceView] Scroll: ({deltaX}, {deltaY})");
+                    instance.SendMouseWheel(x, y, deltaX, deltaY, GetModifiers());
                 }
             }
+        }
+
+        /// <summary>
+        /// True when the pointer is inside the rect and, if this RawImage takes part in UI raycasts,
+        /// no other UI element is on top of it.
+        /// </summary>
+        private bool IsPointerOver(Vector2 screenPosition)
+        {
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    rectTransform, screenPosition, canvasCamera, out Vector2 localPoint))
+                return false;
+
+            if (!rectTransform.rect.Contains(localPoint))
+                return false;
+
+            if (!rawImage.raycastTarget || !hasGraphicRaycaster)
+                return true;
+
+            return GetTopmostHit(screenPosition) == gameObject;
+        }
+
+        private static GameObject GetTopmostHit(Vector2 screenPosition)
+        {
+            var eventSystem = EventSystem.current;
+            if (!eventSystem)
+                return null;
+
+            if (raycastFrame == Time.frameCount && raycastPosition == screenPosition)
+                return topmostHit;
+
+            if (pointerEventData == null || pointerEventData.currentInputModule != eventSystem.currentInputModule)
+                pointerEventData = new PointerEventData(eventSystem);
+            pointerEventData.position = screenPosition;
+            raycastResults.Clear();
+            eventSystem.RaycastAll(pointerEventData, raycastResults);
+
+            raycastFrame = Time.frameCount;
+            raycastPosition = screenPosition;
+            topmostHit = raycastResults.Count > 0 ? raycastResults[0].gameObject : null;
+            return topmostHit;
         }
         
         private void HandleDragStart(int x, int y, DragOperation allowedOps)
         {
             if (debugMouseEvents)
-                Debug.Log($"[WebBrowserCanvasDisplay] Drag start: ({x}, {y}), ops={allowedOps}");
+                Debug.Log($"[CeffyInstanceView] Drag start: ({x}, {y}), ops={allowedOps}");
             isDragging = true;
             isDragOutside = false;
             dragAllowedOps = allowedOps;
-            webBrowser.SendDragTargetEnter(x, y, GetModifiers(), allowedOps);
+            instance.SendDragTargetEnter(x, y, GetModifiers(), allowedOps);
         }
 
         private void HandlePointerExit()
         {
             if (debugMouseEvents)
-                Debug.Log("[WebBrowserCanvasDisplay] Pointer exited");
+                Debug.Log("[CeffyInstanceView] Pointer exited");
+            isPointerInside = false;
             lastBrowserX = -1;
             lastBrowserY = -1;
             if (isDragging && !isDragOutside)
             {
                 isDragOutside = true;
-                if (webBrowser) 
-                    webBrowser.SendDragTargetLeave();
+                instance.SendDragTargetLeave();
             }
             else
             {
-                if (webBrowser) 
-                    webBrowser.SendMouseLeave();
+                instance.SendMouseLeave();
             }
         }
         
         #endregion
         
         #region Keyboard Input
+
+        private void SetFocus(bool focused)
+        {
+            if (hasFocus == focused)
+                return;
+            hasFocus = focused;
+            instance.SetKeyboardFocus(focused);
+        }
         
         private void OnGUI()
         {
-            if (!hasFocus || !webBrowser || !webBrowser.InputKeyboard || EventSystem.current.currentSelectedGameObject)
+            if (!hasFocus || !instance.InputKeyboard)
+                return;
+            if (EventSystem.current && EventSystem.current.currentSelectedGameObject)
                 return;
 
             Event e = Event.current;
@@ -308,7 +387,7 @@ namespace Ceffy
             if (e.type == EventType.KeyDown)
             {
                 if (e.keyCode != KeyCode.None)
-                    webBrowser.KeyDown(e.keyCode, modifiers);
+                    instance.KeyDown(e.keyCode, modifiers);
 
                 if (e.character != '\0')
                 {
@@ -319,7 +398,7 @@ namespace Ceffy
                         var charModifiers = modifiers;
                         if ((charModifiers & EventFlags.AltGrDown) != 0)
                             charModifiers &= ~(EventFlags.ControlDown | EventFlags.AltDown);
-                        webBrowser.SendCharacter(charToSend, charModifiers);
+                        instance.SendCharacter(charToSend, charModifiers);
                     }
                 }
                 e.Use();
@@ -327,7 +406,7 @@ namespace Ceffy
             else if (e.type == EventType.KeyUp)
             {
                 if (e.keyCode != KeyCode.None)
-                    webBrowser.KeyUp(e.keyCode, modifiers);
+                    instance.KeyUp(e.keyCode, modifiers);
                 e.Use();
             }
         }
@@ -355,15 +434,15 @@ namespace Ceffy
         #region Coordinate Conversion
         
         /// <summary>
-        /// Convert a screen position to browser texture coordinates.
-        /// Returns true if the position is within the browser bounds.
+        /// Convert a screen position to page coordinates.
+        /// Returns true if the position is within the page bounds.
         /// </summary>
         private bool ScreenToBrowserCoords(Vector2 screenPosition, out int x, out int y)
         {
             x = 0;
             y = 0;
             
-            if (!webBrowser || !rectTransform)
+            if (!rectTransform)
                 return false;
             
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -374,8 +453,8 @@ namespace Ceffy
             float normalizedX = Mathf.Clamp01((localPoint.x - rect.x) / rect.width);
             float normalizedY = Mathf.Clamp01((localPoint.y - rect.y) / rect.height);
             
-            x = Mathf.Clamp(Mathf.RoundToInt(normalizedX * webBrowser.Width), 0, webBrowser.Width - 1);
-            y = Mathf.Clamp(Mathf.RoundToInt((1f - normalizedY) * webBrowser.Height), 0, webBrowser.Height - 1); // flip Y
+            x = Mathf.Clamp(Mathf.RoundToInt(normalizedX * instance.Width), 0, instance.Width - 1);
+            y = Mathf.Clamp(Mathf.RoundToInt((1f - normalizedY) * instance.Height), 0, instance.Height - 1); // flip Y
             
             return true;
         }

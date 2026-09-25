@@ -5,43 +5,43 @@ namespace Ceffy.Demos.Messaging
 {
     /// <summary>
     /// Minimal demo component showing how to send/receive messages between JavaScript and Unity.
-    /// Attach this to any GameObject (optionally alongside a WebBrowser).
+    /// Attach this to any GameObject (optionally alongside a CeffyInstance).
     /// </summary>
     public sealed class MessagingDemo : MonoBehaviour
     {
         [Tooltip("Optional. If not set, the component will search the scene.")]
-        public WebBrowser webBrowser;
+        public CeffyInstance ceffyInstance;
 
         [TextArea(3, 12)]
         public string lastMessageFromJs;
 
         private void Awake()
         {
-            if (webBrowser == null)
+            if (ceffyInstance == null)
             {
-                webBrowser = GetComponent<WebBrowser>();
-                if (webBrowser == null)
-                    webBrowser = FindAnyObjectByType<WebBrowser>();
+                ceffyInstance = GetComponent<CeffyInstance>();
+                if (ceffyInstance == null)
+                    ceffyInstance = FindAnyObjectByType<CeffyInstance>();
             }
         }
 
         private void OnEnable()
         {
-            if (webBrowser != null)
-                webBrowser.OnMessageFromCeffy += HandleMessageFromJs;
+            if (ceffyInstance != null)
+                ceffyInstance.OnMessageFromCeffy += HandleMessageFromJs;
         }
 
         private void OnDisable()
         {
-            if (webBrowser != null)
-                webBrowser.OnMessageFromCeffy -= HandleMessageFromJs;
+            if (ceffyInstance != null)
+                ceffyInstance.OnMessageFromCeffy -= HandleMessageFromJs;
         }
 
         private void Start()
         {
             // Prove Unity -> JS works (page can log it via onMessageFromUnity).
-            if (webBrowser != null)
-                webBrowser.SendToCeffy("{\"type\":\"unity-ready\",\"ts\":" + Time.frameCount + "}");
+            if (ceffyInstance != null)
+                ceffyInstance.SendToCeffy("{\"type\":\"unity-ready\",\"ts\":" + Time.frameCount + "}");
         }
 
         private void HandleMessageFromJs(string message)
@@ -50,19 +50,19 @@ namespace Ceffy.Demos.Messaging
             Debug.Log($"[Ceffy MessagingDemo] From JS: {message}");
 
             // Echo back so the page can see round-trip behavior.
-            if (webBrowser != null)
-                webBrowser.SendToCeffy("{\"type\":\"echo\",\"message\":" + JsonEscape(message) + "}");
+            if (ceffyInstance != null)
+                ceffyInstance.SendToCeffy("{\"type\":\"echo\",\"message\":" + JsonEscape(message) + "}");
         }
 
         public void SendToPage(string message)
         {
-            if (webBrowser == null)
+            if (ceffyInstance == null)
             {
-                Debug.LogWarning("[Ceffy MessagingDemo] No WebBrowser assigned/found.");
+                Debug.LogWarning("[Ceffy MessagingDemo] No CeffyInstance assigned/found.");
                 return;
             }
 
-            webBrowser.SendToCeffy(message);
+            ceffyInstance.SendToCeffy(message);
         }
 
         private static string JsonEscape(string value)
