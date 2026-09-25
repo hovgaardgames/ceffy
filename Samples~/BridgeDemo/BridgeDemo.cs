@@ -78,7 +78,7 @@ namespace Ceffy.Demos.Bridge
     public sealed class BridgeDemo : MonoBehaviour
     {
         [Tooltip("Optional. If not set, searches the scene.")]
-        public WebBrowser webBrowser;
+        public CeffyInstance ceffyInstance;
 
         private CeffyBridge bridge;
         private IDemoUiMethods ui;
@@ -86,17 +86,17 @@ namespace Ceffy.Demos.Bridge
 
         private void Awake()
         {
-            if (webBrowser == null)
+            if (ceffyInstance == null)
             {
-                webBrowser = GetComponent<WebBrowser>();
-                if (webBrowser == null)
-                    webBrowser = FindAnyObjectByType<WebBrowser>();
+                ceffyInstance = GetComponent<CeffyInstance>();
+                if (ceffyInstance == null)
+                    ceffyInstance = FindAnyObjectByType<CeffyInstance>();
             }
         }
 
         private void Start()
         {
-            bridge = new CeffyBridge(webBrowser);
+            bridge = new CeffyBridge(ceffyInstance);
             bridge.Bind<IDemoUnityMethods>(new DemoUnityMethodsImpl());
             ui = bridge.CreateProxy<IDemoUiMethods>();
 
@@ -105,7 +105,7 @@ namespace Ceffy.Demos.Bridge
 
         private System.Collections.IEnumerator InjectWhenReady()
         {
-            yield return new WaitUntil(() => webBrowser.Texture != null);
+            yield return new WaitUntil(() => ceffyInstance.Texture != null);
             yield return new WaitForSeconds(0.5f);
 
             bridge.InjectBridgeRuntime();

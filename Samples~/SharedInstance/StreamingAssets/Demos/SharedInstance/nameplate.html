@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Nameplate</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 200px;
+      height: 80px;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+    .card {
+      box-sizing: border-box;
+      width: 200px;
+      height: 80px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(12, 18, 28, 0.82);
+      color: #eef4ff;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+    .card:hover {
+      background: rgba(48, 92, 148, 0.94);
+      border-color: rgba(140, 200, 255, 0.55);
+      box-shadow: 0 0 0 1px rgba(140, 200, 255, 0.25);
+    }
+    .name {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bar {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+    }
+    .fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #3dd68c, #57d6ff);
+      transition: width 80ms linear;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="name" id="name">…</div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+  </div>
+  <script>
+    function apply(msg) {
+      let data = msg;
+      if (typeof msg === "string") {
+        try { data = JSON.parse(msg); } catch { return; }
+      }
+      if (!data || typeof data !== "object") return;
+      if (data.name) document.getElementById("name").textContent = data.name;
+      if (typeof data.progress === "number")
+        document.getElementById("fill").style.width = Math.max(0, Math.min(100, data.progress)) + "%";
+    }
+
+    function wire() {
+      if (!window.ceffy) return false;
+      window.ceffy.onMessageFromUnity = apply;
+      return true;
+    }
+
+    if (!wire()) {
+      let tries = 0;
+      const t = setInterval(() => {
+        tries++;
+        if (wire() || tries > 80) clearInterval(t);
+      }, 50);
+    }
+  </script>
+</body>
+</html>

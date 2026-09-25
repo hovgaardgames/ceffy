@@ -15,7 +15,7 @@ namespace Ceffy.Tests.Runtime
             "VudGltZS1zbW9rZScpOzwvc2NyaXB0PjwvYm9keT48L2h0bWw+";
 
         private GameObject _browserObject;
-        private WebBrowser _browser;
+        private CeffyInstance _browser;
         private string _receivedMessage;
 
         [UnityTest]
@@ -27,7 +27,7 @@ namespace Ceffy.Tests.Runtime
 #else
             _browserObject = new GameObject("Ceffy Runtime Test Browser");
             _browserObject.SetActive(false);
-            _browser = _browserObject.AddComponent<WebBrowser>();
+            _browser = _browserObject.AddComponent<CeffyInstance>();
             _browser.StartUrl = TestUrl;
             _browser.Width = TestSize;
             _browser.Height = TestSize;
