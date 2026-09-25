@@ -19,6 +19,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Use Shared Instance** toggle on `CeffyInstance`: runs the page as an isolated iframe inside one browser shared by all shared instances, rendering to its own region of a single texture. Messaging, JavaScript, navigation, resizing, console messages, and mouse/keyboard input work as for dedicated instances; zoom is not supported. Atlas size is set via `CeffyInstance.SharedAtlasWidth`/`SharedAtlasHeight`.
 - Shared Instance Demo sample (orbiting nameplates + interactive panel using shared instances, with a `DemoFollowTarget` helper). Requires URP for the cube materials.
 
+## [1.1.1](https://github.com/hovgaardgames/ceffy/compare/v1.1.0...v1.1.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* Fixed documentation section not generating changelog entry ([#4](https://github.com/hovgaardgames/ceffy/issues/4)) ([aadd225](https://github.com/hovgaardgames/ceffy/commit/aadd225149bebb343334984bdd9504b036441667))
+
+
+### Documentation
+
+* Update readme sample image and added instructions for openUPM install ([#3](https://github.com/hovgaardgames/ceffy/issues/3)) ([455cbe6](https://github.com/hovgaardgames/ceffy/commit/455cbe624d0d110e65d8852154dcf8e061da49f2))
+
+## [1.1.0](https://github.com/hovgaardgames/ceffy/compare/v1.0.1...v1.1.0) (2026-09-25)
+
+### Features
+
+* Add first version of CI release ([#1](https://github.com/hovgaardgames/ceffy/issues/1)) ([a63718e](https://github.com/hovgaardgames/ceffy/commit/a63718e1bdeca8467a5d1e4f41b34c09f2186eef))
+
 ## [1.0.1] - 2026-09-23
 
 ### Fixed
