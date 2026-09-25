@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Use Shared Instance** toggle on `CeffyInstance`: runs the page as an isolated iframe inside one browser shared by all shared instances, rendering to its own region of a single texture. Messaging, JavaScript, navigation, resizing, console messages, and mouse/keyboard input work as for dedicated instances; zoom is not supported. Atlas size is set via `CeffyInstance.SharedAtlasWidth`/`SharedAtlasHeight`.
 - Shared Instance Demo sample (orbiting nameplates + interactive panel using shared instances, with a `DemoFollowTarget` helper). Requires URP for the cube materials.
+- Worldspace Demo sample (world-space Ceffy showing https://www.unity.com, with WASD / mouse fly camera).
 
 ## [1.0.1] - 2026-09-23
 

@@ -48,6 +48,11 @@
       "displayName": "Shared Instance Demo",
       "description": "Orbiting nameplates and a panel running as shared instances in one browser.",
       "path": "Samples~/SharedInstance"
+    },
+    {
+      "displayName": "Worldspace Demo",
+      "description": "A world-space Ceffy panel viewed from an angle, with WASD and mouse camera controls.",
+      "path": "Samples~/Worldspace"
     }
   ]
 }
