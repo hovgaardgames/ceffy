@@ -20,12 +20,6 @@ namespace Ceffy
 
         private int browserId = -1;
 
-        public CeffyBrowser(int width, int height)
-        {
-            Width = Mathf.Max(1, width);
-            Height = Mathf.Max(1, height);
-        }
-
         public int Width { get; private set; }
         public int Height { get; private set; }
         public Texture2D Texture { get; private set; }
@@ -34,6 +28,12 @@ namespace Ceffy
         public event Action<string> MessageReceived;
         public event Action<LogLevel, string, string, int> ConsoleMessage;
         public event Action<int, int, DragOperation> DragStarted;
+
+        public CeffyBrowser(int width, int height)
+        {
+            Width = Mathf.Max(1, width);
+            Height = Mathf.Max(1, height);
+        }
 
         /// <summary>
         /// Creates the native browser once the runtime is ready and exposes its texture.
