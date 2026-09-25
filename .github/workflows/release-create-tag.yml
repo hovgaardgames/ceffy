@@ -1,0 +1,95 @@
+on:
+  pull_request_target:
+    types:
+      - closed
+    branches:
+      - main
+    paths:
+      - '.release-please-manifest.json'
+
+name: release-create-tag
+
+jobs:
+  create-tag:
+    if: >-
+      github.event.pull_request.merged
+      && contains(github.event.pull_request.labels.*.name, 'autorelease: pending')
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - id: checkout
+        name: Check out package with LFS
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          lfs: true
+      - id: package
+        name: Verify package version
+        run: |
+          version=$(jq -r '.version' package.json)
+          manifestVersion=$(jq -r '."."' .release-please-manifest.json)
+          if [[ -z "$version" || "$version" == "null" || "$version" != "$manifestVersion" ]]; then
+            echo "Package and release manifest versions do not match." >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - id: install-upm
+        name: Install Unity UPM CLI
+        run: |
+          curl -fsSL https://cdn.packages.unity.com/upm-cli/install.sh -o "$RUNNER_TEMP/install-upm.sh"
+          bash "$RUNNER_TEMP/install-upm.sh"
+          echo "$HOME/.upm/bin" >> "$GITHUB_PATH"
+      - id: signed-package
+        name: Sign and verify package
+        env:
+          UPM_SERVICE_ACCOUNT_KEY_ID: ${{ secrets.UPM_SERVICE_ACCOUNT_KEY_ID }}
+          UPM_SERVICE_ACCOUNT_KEY_SECRET: ${{ secrets.UPM_SERVICE_ACCOUNT_KEY_SECRET }}
+          UPM_ORG_ID: ${{ vars.UPM_ORG_ID }}
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          if [[ -z "$UPM_SERVICE_ACCOUNT_KEY_ID" || -z "$UPM_SERVICE_ACCOUNT_KEY_SECRET" || -z "$UPM_ORG_ID" ]]; then
+            echo "Unity package signing credentials or organization ID are missing." >&2
+            exit 1
+          fi
+          destination="$RUNNER_TEMP/signed-upm-dist"
+          upm pack . --organization-id "$UPM_ORG_ID" --destination "$destination"
+          archives=("$destination"/*.tgz)
+          if [[ ${#archives[@]} -ne 1 || ! -f "${archives[0]}" ]]; then
+            echo "Expected exactly one signed package archive." >&2
+            exit 1
+          fi
+          archive="${archives[0]}"
+          entries=$(tar -tzf "$archive")
+          if ! grep -qx 'package/package.json' <<< "$entries" || ! grep -qx 'package/.attestation.p7m' <<< "$entries"; then
+            echo "Signed package is missing its manifest or attestation." >&2
+            exit 1
+          fi
+          packedVersion=$(tar -xOzf "$archive" package/package.json | jq -r '.version')
+          if [[ "$packedVersion" != "$PACKAGE_VERSION" ]]; then
+            echo "Signed package version does not match the release version." >&2
+            exit 1
+          fi
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+      - id: release
+        name: Create release tag
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          target-branch: main
+          skip-github-pull-request: true
+      - id: upload-package
+        name: Upload signed package
+        env:
+          GH_TOKEN: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
+          RELEASE_CREATED: ${{ steps.release.outputs.release_created }}
+          TAG_NAME: ${{ steps.release.outputs.tag_name }}
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+          ARCHIVE: ${{ steps.signed-package.outputs.archive }}
+        run: |
+          if [[ "$RELEASE_CREATED" != "true" || "$TAG_NAME" != "v$PACKAGE_VERSION" ]]; then
+            echo "Release Please did not create the expected tag." >&2
+            exit 1
+          fi
+          gh release upload "$TAG_NAME" "$ARCHIVE"

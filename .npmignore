@@ -1,0 +1,7 @@
+/.github/
+/native~/
+/.idea/
+/.gitattributes
+/.gitignore
+/.release-please-manifest.json
+/release-please-config.json
