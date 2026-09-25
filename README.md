@@ -1,3 +1,7 @@
+<p align="center">
+<img src="Documentation~/ceffy_logo_social_github.png" alt="Embeds a CEF (Chromium Embedded Framework) browser inside Unity via a native C++ plugin. Distributed as a UPM package with Git LFS–tracked native binaries." width="960">
+</p>
+
 # Ceffy
 
 [![Unity 6+](https://img.shields.io/badge/Unity-6.0%2B-black?logo=unity)](https://unity3d.com/get-unity/download)
@@ -13,6 +17,13 @@ Embeds a CEF (Chromium Embedded Framework) browser inside Unity via a native C++
 - **Git LFS** enabled on the client that clones/installs the package
 
 ## Installation
+
+### Via OpenUPM (Package Manager)
+
+1. Open **Edit > Project Settings > Package Manager** in Unity.
+2. Add a scoped registry with **Name** `OpenUPM`, **URL** `https://package.openupm.com`, and **Scope** `com.hovgaard.ceffy`, then click **Apply**.
+3. Open **Window > Package Manager**.
+4. Click **+ > Add package by name**, enter `com.hovgaard.ceffy`, and click **Add**.
 
 ### Via Git URL (Package Manager)
 
