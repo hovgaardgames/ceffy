@@ -627,8 +627,8 @@ namespace Ceffy
         /// </summary>
         internal void SetKeyboardFocus(bool focused)
         {
-            if (isShared)
-                sharedHost?.SetFocus(sharedSlot, focused);
+            if (isShared && sharedHost)
+                sharedHost.SetFocus(sharedSlot, focused);
         }
         
         /// <summary>
