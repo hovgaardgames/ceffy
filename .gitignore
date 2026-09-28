@@ -41,6 +41,7 @@ cef.log
 ExportedObj/
 .consulo/
 *.csproj
+!/lint-csharp.csproj
 *.unityproj
 *.sln
 *.suo

@@ -111,6 +111,26 @@ To download and configure CEF without building, run:
 .\native~\setup.ps1
 ```
 
+### C++ Formatting
+
+The C++ formatting check covers `.cpp` and `.h` files in `native~/src/` and `native~/helper/`. It uses `native~/.clang-format` and requires the Visual Studio LLVM tools. Run the check or fix formatting with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\native~\lint.ps1
+powershell -ExecutionPolicy Bypass -File .\native~\lint.ps1 -Fix
+```
+
+### C# Formatting
+
+The C# formatting check covers only `Runtime/` and `Editor/`. It uses the repository's `.editorconfig` and requires the .NET 10 SDK. Run the check to list files that need formatting, or apply the same formatter to those files:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\lint-csharp.ps1
+powershell -ExecutionPolicy Bypass -File .\lint-csharp.ps1 -Fix
+```
+
+Rider reads `.editorconfig` automatically. Use **Code > Reformat Code** while editing C# files in these folders; run the check before submitting a PR to confirm the .NET formatter agrees. The `lint-csharp.csproj` file is used only by the formatting tool and is not part of the Unity package build.
+
 ## Testing
 
 Add `"testables": ["com.hovgaard.ceffy"]` to the consuming Unity project's `Packages/manifest.json`, then open **Window > General > Test Runner**. EditMode contains unit tests; PlayMode contains the Windows native runtime smoke test.
