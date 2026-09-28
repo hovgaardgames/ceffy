@@ -7,8 +7,6 @@ namespace Ceffy.InputSystem
 {
     internal sealed class InputSystemWebBrowserInput : IWebBrowserInput
     {
-        private const float ScrollDeltaScale = 120.0f;
-
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void Register()
         {
@@ -40,7 +38,7 @@ namespace Ceffy.InputSystem
 
         public Vector2 GetMouseScrollDelta()
         {
-            return Mouse.current != null ? Mouse.current.scroll.ReadValue() / ScrollDeltaScale : Vector2.zero;
+            return Mouse.current != null ? Mouse.current.scroll.ReadValue() : Vector2.zero;
         }
 
         public bool GetShift()
