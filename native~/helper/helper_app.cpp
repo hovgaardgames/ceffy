@@ -1,7 +1,38 @@
 #include "helper_app.h"
 #include "include/cef_browser.h"
 #include "include/cef_frame.h"
+#include <iomanip>
+#include <sstream>
 #include <string>
+
+namespace {
+constexpr char kSharedSlotPrefix[] = "ceffy-slot-";
+
+std::string EscapeJson(const std::string& value) {
+    std::ostringstream escaped;
+    for (unsigned char c : value) {
+        switch (c) {
+            case '\\': escaped << "\\\\"; break;
+            case '"':  escaped << "\\\""; break;
+            case '\b': escaped << "\\b"; break;
+            case '\f': escaped << "\\f"; break;
+            case '\n': escaped << "\\n"; break;
+            case '\r': escaped << "\\r"; break;
+            case '\t': escaped << "\\t"; break;
+            default:
+                if (c < 0x20) {
+                    escaped << "\\u"
+                            << std::hex << std::setw(4) << std::setfill('0')
+                            << static_cast<int>(c)
+                            << std::dec;
+                } else {
+                    escaped << c;
+                }
+        }
+    }
+    return escaped.str();
+}
+}
 
 // ---------------------------------------------------------------------------
 // CeffyRendererApp
@@ -10,7 +41,8 @@
 void CeffyRendererApp::OnContextCreated(CefRefPtr<CefBrowser> browser,
                                        CefRefPtr<CefFrame> frame,
                                        CefRefPtr<CefV8Context> context) {
-    if (!frame->IsMain())
+    const std::string frameName = frame->GetName().ToString();
+    if (!frame->IsMain() && frameName.rfind(kSharedSlotPrefix, 0) != 0)
         return;
 
     CefRefPtr<CefV8Value> global = context->GetGlobal();
@@ -40,20 +72,7 @@ bool CeffyRendererApp::OnProcessMessageReceived(
 
     if (message->GetName() == "DispatchToJS") {
         CefString raw = message->GetArgumentList()->GetString(0);
-        std::string msg = raw.ToString();
-
-        std::string escaped;
-        escaped.reserve(msg.size() + 16);
-        for (char c : msg) {
-            switch (c) {
-                case '\\': escaped += "\\\\"; break;
-                case '"':  escaped += "\\\""; break;
-                case '\n': escaped += "\\n";  break;
-                case '\r': escaped += "\\r";  break;
-                case '\t': escaped += "\\t";  break;
-                default:   escaped += c;      break;
-            }
-        }
+        std::string escaped = EscapeJson(raw.ToString());
 
         std::string js =
             "(function(){try{if(window.ceffy&&typeof window.ceffy.onMessageFromUnity==='function'){"
@@ -87,6 +106,19 @@ bool CeffySendToUnityHandler::Execute(const CefString& name,
     CefString value;
     if (arguments[0]->IsString()) {
         value = arguments[0]->GetStringValue();
+    } else if (!frame_->IsMain()) {
+        CefRefPtr<CefV8Value> json =
+            CefV8Context::GetCurrentContext()->GetGlobal()->GetValue("JSON");
+        CefRefPtr<CefV8Value> stringify = json->GetValue("stringify");
+        CefV8ValueList stringifyArgs = {arguments[0]};
+        CefRefPtr<CefV8Value> result =
+            stringify->ExecuteFunction(json, stringifyArgs);
+        if (result && result->IsString())
+            value = result->GetStringValue();
+        else {
+            exception = "SendToUnity argument is not serializable";
+            return true;
+        }
     } else {
         exception = "SendToUnity argument must be a string";
         return true;
@@ -94,7 +126,17 @@ bool CeffySendToUnityHandler::Execute(const CefString& name,
 
     CefRefPtr<CefProcessMessage> msg =
         CefProcessMessage::Create("SendToUnity");
-    msg->GetArgumentList()->SetString(0, value);
+    if (frame_->IsMain()) {
+        msg->GetArgumentList()->SetString(0, value);
+    } else {
+        const std::string frameName = frame_->GetName().ToString();
+        const std::string slotId = frameName.substr(sizeof(kSharedSlotPrefix) - 1);
+        const std::string payload = value.ToString();
+        msg->GetArgumentList()->SetString(
+            0,
+            "{\"type\":\"msg\",\"id\":\"" + EscapeJson(slotId) +
+                "\",\"data\":\"" + EscapeJson(payload) + "\"}");
+    }
     frame_->SendProcessMessage(PID_BROWSER, msg);
 
     return true;

@@ -304,7 +304,7 @@ namespace Ceffy
             if (!rectTransform.rect.Contains(localPoint))
                 return false;
 
-            if (!rawImage.raycastTarget || !hasGraphicRaycaster)
+            if (!rawImage.raycastTarget || !hasGraphicRaycaster || !EventSystem.current)
                 return true;
 
             return GetTopmostHit(screenPosition) == gameObject;
