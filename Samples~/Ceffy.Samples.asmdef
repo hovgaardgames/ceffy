@@ -2,7 +2,9 @@
     "name": "Ceffy.Samples",
     "rootNamespace": "",
     "references": [
-        "Ceffy"
+        "Ceffy",
+        "UnityEngine.UI",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
