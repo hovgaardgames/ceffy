@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Ceffy
 {
     /// <summary>
-    /// Low-level bindings to the Ceffy native plugin. Most consumers should use <see cref="WebBrowser"/> instead.
+    /// Low-level bindings to the Ceffy native plugin. Most consumers should use <see cref="CeffyInstance"/> instead.
     /// </summary>
     public static class NativeBridge
     {

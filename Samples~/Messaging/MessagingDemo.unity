@@ -583,7 +583,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f6c5af2f0f94ad1a0e7b3b7b6a9f2c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ceffy.Demos.Messaging.MessagingDemo
-  webBrowser: {fileID: 0}
+  ceffyInstance: {fileID: 0}
   lastMessageFromJs: 
 --- !u!1 &832575517
 GameObject:

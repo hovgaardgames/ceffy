@@ -5,7 +5,7 @@ namespace Ceffy.Demos.Zoom
     public sealed class ZoomDemo : MonoBehaviour
     {
         [Tooltip("Optional. If not set, the component will search the scene.")]
-        public WebBrowser webBrowser;
+        public CeffyInstance ceffyInstance;
 
         private static readonly double[] ZoomPresets = { 25, 50, 75, 90, 100, 110, 125, 150, 175, 200, 250, 300 };
 
@@ -20,11 +20,11 @@ namespace Ceffy.Demos.Zoom
 
         private void Awake()
         {
-            if (webBrowser == null)
+            if (ceffyInstance == null)
             {
-                webBrowser = GetComponent<WebBrowser>();
-                if (webBrowser == null)
-                    webBrowser = FindAnyObjectByType<WebBrowser>();
+                ceffyInstance = GetComponent<CeffyInstance>();
+                if (ceffyInstance == null)
+                    ceffyInstance = FindAnyObjectByType<CeffyInstance>();
             }
         }
 
@@ -55,7 +55,7 @@ namespace Ceffy.Demos.Zoom
 
         private void OnGUI()
         {
-            if (webBrowser == null) return;
+            if (ceffyInstance == null) return;
 
             InitStyles();
 
@@ -73,7 +73,7 @@ namespace Ceffy.Demos.Zoom
         {
             _currentPercent = System.Math.Max(25, System.Math.Min(300, percent));
             if (!_nativeAvailable) return;
-            try { webBrowser.SetZoomPercent(_currentPercent); }
+            try { ceffyInstance.SetZoomPercent(_currentPercent); }
             catch (System.EntryPointNotFoundException) { _nativeAvailable = false; }
         }
 

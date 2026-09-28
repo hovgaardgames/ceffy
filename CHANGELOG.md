@@ -6,7 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-
 ## [1.1.1](https://github.com/hovgaardgames/ceffy/compare/v1.1.0...v1.1.1) (2026-09-25)
 
 

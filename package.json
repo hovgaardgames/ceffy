@@ -43,6 +43,11 @@
       "displayName": "Bridge Demo",
       "description": "Bidirectional RPC bridge between C# and JavaScript.",
       "path": "Samples~/BridgeDemo"
+    },
+    {
+      "displayName": "Shared Instance Demo",
+      "description": "Orbiting nameplates and a panel running as shared instances in one browser.",
+      "path": "Samples~/SharedInstance"
     }
   ]
 }

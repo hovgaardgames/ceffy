@@ -23,7 +23,7 @@ namespace Ceffy
         /// <summary>
         /// When true, Ceffy logs detailed lifecycle and diagnostics messages.
         /// Errors and warnings are always logged regardless of this setting.
-        /// Set via the VerboseLogging toggle on any WebBrowser component.
+        /// Set via the VerboseLogging toggle on any CeffyInstance component.
         /// </summary>
         public static bool VerboseLogging { get; set; }
 

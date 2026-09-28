@@ -8,7 +8,7 @@ namespace Ceffy.Bridge
 {
     /// <summary>
     /// Bidirectional RPC bridge between Unity (C#) and a web page running in a
-    /// <see cref="WebBrowser"/>. Handles JSON-RPC messaging, automatic JS
+    /// <see cref="CeffyInstance"/>. Handles JSON-RPC messaging, automatic JS
     /// injection, and typed proxy generation.
     /// </summary>
     public class CeffyBridge
@@ -22,7 +22,7 @@ namespace Ceffy.Bridge
 
         private readonly List<string> pendingInjections = new();
 
-        public CeffyBridge(WebBrowser webBrowser) : this(new WebBrowserTransport(webBrowser))
+        public CeffyBridge(CeffyInstance ceffyInstance) : this(new CeffyInstanceTransport(ceffyInstance))
         {
         }
 
@@ -174,29 +174,29 @@ namespace Ceffy.Bridge
 
         #endregion
 
-        private class WebBrowserTransport : ICeffyBridgeTransport
+        private class CeffyInstanceTransport : ICeffyBridgeTransport
         {
-            private readonly WebBrowser webBrowser;
+            private readonly CeffyInstance ceffyInstance;
 
             public event Action<string> MessageReceived
             {
-                add => webBrowser.OnMessageFromCeffy += value;
-                remove => webBrowser.OnMessageFromCeffy -= value;
+                add => ceffyInstance.OnMessageFromCeffy += value;
+                remove => ceffyInstance.OnMessageFromCeffy -= value;
             }
 
-            public WebBrowserTransport(WebBrowser webBrowser)
+            public CeffyInstanceTransport(CeffyInstance ceffyInstance)
             {
-                this.webBrowser = webBrowser;
+                this.ceffyInstance = ceffyInstance;
             }
 
             public void ExecuteJavaScript(string javaScript)
             {
-                webBrowser.ExecuteJS(javaScript);
+                ceffyInstance.ExecuteJS(javaScript);
             }
 
             public void SendMessage(string message)
             {
-                webBrowser.SendToCeffy(message);
+                ceffyInstance.SendToCeffy(message);
             }
         }
     }

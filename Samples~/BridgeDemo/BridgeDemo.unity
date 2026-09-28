@@ -583,7 +583,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e98230fea8d43aa8977fedb4eb05d73, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ceffy.Demos.Bridge.BridgeDemo
-  webBrowser: {fileID: 0}
+  ceffyInstance: {fileID: 0}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0

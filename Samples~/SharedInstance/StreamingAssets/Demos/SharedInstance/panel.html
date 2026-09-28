@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>World Panel</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 320px;
+      height: 220px;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: #eef4ff;
+    }
+    .panel {
+      box-sizing: border-box;
+      width: 320px;
+      height: 220px;
+      padding: 16px;
+      border-radius: 12px;
+      background: rgba(10, 16, 26, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #9fb1c5;
+    }
+    input, button {
+      font: inherit;
+      border-radius: 8px;
+      border: 1px solid #2a3a4f;
+      padding: 8px 10px;
+    }
+    input {
+      background: #0b1220;
+      color: #eef4ff;
+    }
+    button {
+      background: #1f6feb;
+      color: white;
+      border: 0;
+      cursor: pointer;
+    }
+    #status {
+      font-size: 12px;
+      color: #7ee0a9;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>World panel</h1>
+    <p>Click and type here — input is remapped into this iframe slot.</p>
+    <input id="text" type="text" placeholder="Type a note…" />
+    <button id="btn" type="button">Send to Unity</button>
+    <div id="status"></div>
+  </div>
+  <script>
+    const statusEl = document.getElementById("status");
+    const textEl = document.getElementById("text");
+    const btn = document.getElementById("btn");
+
+    function wire() {
+      if (!window.ceffy) return false;
+
+      window.ceffy.onMessageFromUnity = (msg) => {
+        statusEl.textContent = "Unity → panel: " + (typeof msg === "string" ? msg : JSON.stringify(msg));
+      };
+
+      btn.addEventListener("click", () => {
+        const payload = {
+          type: "panel-click",
+          text: textEl.value || "",
+          ts: Date.now()
+        };
+        window.ceffy.SendToUnity(payload);
+        statusEl.textContent = "Sent click to Unity";
+      });
+
+      window.ceffy.SendToUnity({ type: "panel-ready", ts: Date.now() });
+      return true;
+    }
+
+    if (!wire()) {
+      let tries = 0;
+      const t = setInterval(() => {
+        tries++;
+        if (wire() || tries > 80) clearInterval(t);
+      }, 50);
+    }
+  </script>
+</body>
+</html>
