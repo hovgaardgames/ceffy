@@ -1,0 +1,23 @@
+name: Lint native C++
+
+on:
+  pull_request:
+    paths:
+      - native~/src/**
+      - native~/helper/**
+      - native~/.clang-format
+      - native~/lint.ps1
+      - .github/workflows/lint-native.yml
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: windows-2022
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Check native formatting
+        shell: pwsh
+        run: .\native~\lint.ps1

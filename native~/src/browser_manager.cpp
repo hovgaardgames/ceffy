@@ -14,7 +14,8 @@ BrowserManager& BrowserManager::Instance() {
     return instance;
 }
 
-bool BrowserManager::Initialize(const char* cachePath, int remoteDebuggingPort, int64_t adapterLuid, unsigned int graphicsVendorId, unsigned int graphicsDeviceId) {
+bool BrowserManager::Initialize(const char* cachePath, int remoteDebuggingPort, int64_t adapterLuid,
+                                unsigned int graphicsVendorId, unsigned int graphicsDeviceId) {
     if (initialized_) {
         printf(">> BrowserManager already initialized\n");
         return true;
@@ -48,13 +49,14 @@ bool BrowserManager::Initialize(const char* cachePath, int remoteDebuggingPort, 
     }
 
     initialized_ = true;
-    printf(">> CEF initialized (cache=%s, debug_port=%d, luid=%lld, vendor=0x%X device=0x%X)\n",
-           cachePath, remoteDebuggingPort, static_cast<long long>(adapterLuid), graphicsVendorId, graphicsDeviceId);
+    printf(">> CEF initialized (cache=%s, debug_port=%d, luid=%lld, vendor=0x%X device=0x%X)\n", cachePath,
+           remoteDebuggingPort, static_cast<long long>(adapterLuid), graphicsVendorId, graphicsDeviceId);
     return true;
 }
 
 void BrowserManager::Shutdown() {
-    if (!initialized_) return;
+    if (!initialized_)
+        return;
 
     CloseAllBrowsers();
 
@@ -64,7 +66,8 @@ void BrowserManager::Shutdown() {
 }
 
 void BrowserManager::CloseAllBrowsers() {
-    if (!initialized_) return;
+    if (!initialized_)
+        return;
 
     std::vector<CefRefPtr<CefBrowserHost>> hostsToClose;
     {
@@ -88,7 +91,8 @@ void BrowserManager::CloseAllBrowsers() {
             std::lock_guard<std::mutex> lock(browsersMutex_);
             remaining = browsers_.size();
         }
-        if (remaining == 0) break;
+        if (remaining == 0)
+            break;
         Sleep(10);
     }
 
@@ -115,7 +119,8 @@ int BrowserManager::CreateBrowser(const char* url, int width, int height) {
     }
 
     const int browserId = nextBrowserId_.fetch_add(1);
-    auto textureManager = std::make_unique<TextureManager>(width, height, adapterLuid_, graphicsVendorId_, graphicsDeviceId_);
+    auto textureManager =
+        std::make_unique<TextureManager>(width, height, adapterLuid_, graphicsVendorId_, graphicsDeviceId_);
 
     const std::string& gpuDesc = textureManager->GetAdapterDescription();
     if (!gpuDesc.empty()) {
@@ -126,8 +131,7 @@ int BrowserManager::CreateBrowser(const char* url, int width, int height) {
         callbackQueue_.Push(std::move(logCb));
     }
 
-    CefRefPtr<CeffyClient> client(
-        new CeffyClient(browserId, width, height, textureManager.get(), &callbackQueue_));
+    CefRefPtr<CeffyClient> client(new CeffyClient(browserId, width, height, textureManager.get(), &callbackQueue_));
 
     CefWindowInfo windowInfo;
     windowInfo.SetAsWindowless(nullptr);
@@ -150,8 +154,8 @@ int BrowserManager::CreateBrowser(const char* url, int width, int height) {
         browsers_[browserId] = std::move(entry);
     }
 
-    const bool createAccepted = CefBrowserHost::CreateBrowser(
-        windowInfo, client, url, browserSettings, nullptr, nullptr);
+    const bool createAccepted =
+        CefBrowserHost::CreateBrowser(windowInfo, client, url, browserSettings, nullptr, nullptr);
 
     if (!createAccepted) {
         std::lock_guard<std::mutex> lock(browsersMutex_);
@@ -169,7 +173,8 @@ void BrowserManager::CloseBrowser(int browserId) {
     {
         std::lock_guard<std::mutex> lock(browsersMutex_);
         auto it = browsers_.find(browserId);
-        if (it == browsers_.end()) return;
+        if (it == browsers_.end())
+            return;
         if (it->second->browser) {
             host = it->second->browser->GetHost();
         } else {
@@ -189,8 +194,7 @@ BrowserEntry* BrowserManager::GetBrowser(int browserId) {
     return (it != browsers_.end()) ? it->second.get() : nullptr;
 }
 
-void BrowserManager::RegisterBrowser(int browserId, CefRefPtr<CefBrowser> browser,
-                                     CefRefPtr<CeffyClient> client) {
+void BrowserManager::RegisterBrowser(int browserId, CefRefPtr<CefBrowser> browser, CefRefPtr<CeffyClient> client) {
     std::lock_guard<std::mutex> lock(browsersMutex_);
     auto it = browsers_.find(browserId);
     if (it != browsers_.end()) {

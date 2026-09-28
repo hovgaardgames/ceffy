@@ -25,11 +25,12 @@ class BrowserManager {
 public:
     static BrowserManager& Instance();
 
-    bool Initialize(const char* cachePath, int remoteDebuggingPort, int64_t adapterLuid, unsigned int graphicsVendorId, unsigned int graphicsDeviceId);
+    bool Initialize(const char* cachePath, int remoteDebuggingPort, int64_t adapterLuid, unsigned int graphicsVendorId,
+                    unsigned int graphicsDeviceId);
     void Shutdown();
     void SetSubProcessPath(const char* path);
 
-    int  CreateBrowser(const char* url, int width, int height);
+    int CreateBrowser(const char* url, int width, int height);
     void CloseBrowser(int browserId);
     void CloseAllBrowsers();
 

@@ -17,9 +17,7 @@ class CallbackQueue;
 // ---------------------------------------------------------------------------
 class CeffyBrowserApp : public CefApp {
 public:
-    void OnBeforeCommandLineProcessing(
-        const CefString& process_type,
-        CefRefPtr<CefCommandLine> command_line) override;
+    void OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) override;
 
     IMPLEMENT_REFCOUNTING(CeffyBrowserApp);
 };
@@ -29,9 +27,8 @@ public:
 // ---------------------------------------------------------------------------
 class CeffyRenderHandler : public CefRenderHandler {
 public:
-    CeffyRenderHandler(int browserId, int width, int height,
-                      TextureManager* textureManager,
-                      CallbackQueue* callbackQueue);
+    CeffyRenderHandler(int browserId, int width, int height, TextureManager* textureManager,
+                       CallbackQueue* callbackQueue);
 
     void SetSize(int w, int h);
     bool HasReceivedPaint() const { return hasReceivedPaint_.load(); }
@@ -43,21 +40,15 @@ public:
 
     // CefRenderHandler
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
-    void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser,
-                            PaintElementType type,
-                            const RectList& dirtyRects,
+    void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects,
                             const CefAcceleratedPaintInfo& info) override;
-    void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type,
-                 const RectList& dirtyRects, const void* buffer,
+    void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer,
                  int width, int height) override;
     void OnPopupShow(CefRefPtr<CefBrowser> browser, bool show) override;
     void OnPopupSize(CefRefPtr<CefBrowser> browser, const CefRect& rect) override;
-    bool StartDragging(CefRefPtr<CefBrowser> browser,
-                       CefRefPtr<CefDragData> drag_data,
-                       DragOperationsMask allowed_ops,
+    bool StartDragging(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDragData> drag_data, DragOperationsMask allowed_ops,
                        int x, int y) override;
-    void UpdateDragCursor(CefRefPtr<CefBrowser> browser,
-                          DragOperation operation) override;
+    void UpdateDragCursor(CefRefPtr<CefBrowser> browser, DragOperation operation) override;
 
     IMPLEMENT_REFCOUNTING(CeffyRenderHandler);
 
@@ -87,18 +78,11 @@ public:
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
     bool DoClose(CefRefPtr<CefBrowser> browser) override;
     void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
-    bool OnBeforePopup(CefRefPtr<CefBrowser> browser,
-                       CefRefPtr<CefFrame> frame,
-                       int popup_id,
-                       const CefString& target_url,
-                       const CefString& target_frame_name,
-                       WindowOpenDisposition target_disposition,
-                       bool user_gesture,
-                       const CefPopupFeatures& popupFeatures,
-                       CefWindowInfo& windowInfo,
-                       CefRefPtr<CefClient>& client,
-                       CefBrowserSettings& settings,
-                       CefRefPtr<CefDictionaryValue>& extra_info,
+    bool OnBeforePopup(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int popup_id,
+                       const CefString& target_url, const CefString& target_frame_name,
+                       WindowOpenDisposition target_disposition, bool user_gesture,
+                       const CefPopupFeatures& popupFeatures, CefWindowInfo& windowInfo, CefRefPtr<CefClient>& client,
+                       CefBrowserSettings& settings, CefRefPtr<CefDictionaryValue>& extra_info,
                        bool* no_javascript_access) override;
 
     IMPLEMENT_REFCOUNTING(CeffyLifeSpanHandler);
@@ -114,11 +98,8 @@ class CeffyDisplayHandler : public CefDisplayHandler {
 public:
     CeffyDisplayHandler(int browserId, CallbackQueue* callbackQueue);
 
-    bool OnConsoleMessage(CefRefPtr<CefBrowser> browser,
-                          cef_log_severity_t level,
-                          const CefString& message,
-                          const CefString& source,
-                          int line) override;
+    bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message,
+                          const CefString& source, int line) override;
 
     IMPLEMENT_REFCOUNTING(CeffyDisplayHandler);
 
@@ -132,16 +113,13 @@ private:
 // ---------------------------------------------------------------------------
 class CeffyClient : public CefClient {
 public:
-    CeffyClient(int browserId, int width, int height,
-               TextureManager* textureManager, CallbackQueue* callbackQueue);
+    CeffyClient(int browserId, int width, int height, TextureManager* textureManager, CallbackQueue* callbackQueue);
 
-    CefRefPtr<CefRenderHandler>   GetRenderHandler()   override { return renderHandler_; }
+    CefRefPtr<CefRenderHandler> GetRenderHandler() override { return renderHandler_; }
     CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return lifeSpanHandler_; }
-    CefRefPtr<CefDisplayHandler>  GetDisplayHandler()  override { return displayHandler_; }
+    CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return displayHandler_; }
 
-    bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser,
-                                  CefRefPtr<CefFrame> frame,
-                                  CefProcessId source_process,
+    bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process,
                                   CefRefPtr<CefProcessMessage> message) override;
 
     CeffyRenderHandler* GetCeffyRenderHandler() { return renderHandler_.get(); }
@@ -149,9 +127,9 @@ public:
     IMPLEMENT_REFCOUNTING(CeffyClient);
 
 private:
-    CefRefPtr<CeffyRenderHandler>   renderHandler_;
+    CefRefPtr<CeffyRenderHandler> renderHandler_;
     CefRefPtr<CeffyLifeSpanHandler> lifeSpanHandler_;
-    CefRefPtr<CeffyDisplayHandler>  displayHandler_;
+    CefRefPtr<CeffyDisplayHandler> displayHandler_;
     int browserId_;
     CallbackQueue* callbackQueue_;
 };
