@@ -139,25 +139,7 @@ namespace Ceffy
 
         private void LateUpdate()
         {
-            UpdateMaterialForBackBuffer();
             UpdateTexture();
-        }
-
-        private void UpdateMaterialForBackBuffer()
-        {
-            if (QualitySettings.activeColorSpace != ColorSpace.Linear || !browserMaterial)
-                return;
-
-            // D3D12 doesn't apply sRGBWrite for Canvas rendering in fullscreen at non-native
-            // resolution, causing the shader's linear output to appear dark. In that case,
-            // skip gamma correction so raw sRGB texture data passes through directly.
-            bool isD3D12NonNativeFullscreen =
-                SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Direct3D12
-                && Screen.fullScreen
-                && (Screen.width != Display.main.systemWidth
-                    || Screen.height != Display.main.systemHeight);
-
-            rawImage.material = isD3D12NonNativeFullscreen ? null : browserMaterial;
         }
 
         private void UpdateTexture()
