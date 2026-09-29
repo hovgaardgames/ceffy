@@ -75,6 +75,8 @@ After importing a sample, the included `CeffySampleStreamingAssets` editor scrip
 
 ## Development
 
+For code style, field order, checks, and pull request guidance, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ### Package Layout
 
 - `Runtime/`, `Editor/`, and `NativeRuntime/` contain the installed package.
@@ -122,14 +124,14 @@ powershell -ExecutionPolicy Bypass -File .\native~\lint.ps1 -Fix
 
 ### C# Formatting
 
-The C# check covers every `.cs` file in `Runtime/`, `Editor/`, and `Samples~/`. It uses `.editorconfig` and requires the .NET 10 SDK. Formatting is enforced; lines over 120 characters and obvious LINQ use are reported as warnings. The text checks aid review and are not a complete C# analyzer. Rider and Visual Studio use `.editorconfig` for formatting and naming guidance.
+The C# check covers `Runtime/`, `Editor/`, and `Samples~/`. See [CONTRIBUTING.md](CONTRIBUTING.md#code-style) for the formatting and naming policy.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\lint-csharp.ps1
 powershell -ExecutionPolicy Bypass -File .\lint-csharp.ps1 -Fix
 ```
 
-Use **Code > Reformat Code** in Rider while editing. `-Fix` changes formatting only; warnings need manual review. CI checks all three folders. The `lint-csharp.csproj` file is used only by the formatting tool and is not part of the Unity package build.
+`-Fix` changes formatting only. The `lint-csharp.csproj` file is used only by the formatter and is not part of the Unity package build.
 
 ## Testing
 
