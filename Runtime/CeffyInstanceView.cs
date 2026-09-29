@@ -13,6 +13,17 @@ namespace Ceffy
     [RequireComponent(typeof(RawImage), typeof(CeffyInstance))]
     public class CeffyInstanceView : MonoBehaviour
     {
+        private const float DoubleClickTime = 0.3f;
+        private const string BrowserMaterialName = "WebBrowserUIMaterial";
+
+        // One UI raycast per frame shared by all views, used to let the topmost view take the pointer.
+        private static readonly List<RaycastResult> raycastResults = new();
+        private static PointerEventData pointerEventData;
+        private static int raycastFrame = -1;
+        private static Vector2 raycastPosition;
+        private static GameObject topmostHit;
+        private static Texture2D transparentTexture;
+
         [Tooltip("Enable debug logging for mouse events")]
         public bool debugMouseEvents;
 
@@ -32,22 +43,11 @@ namespace Ceffy
         // Click tracking for double-click support
         private float[] lastClickTime = new float[3];
         private int[] clickCount = new int[3];
-        private const float DoubleClickTime = 0.3f;
 
         // Drag tracking for HTML5 drag & drop
         private bool isDragging;
         private bool isDragOutside;
         private DragOperation dragAllowedOps;
-
-        private const string BrowserMaterialName = "WebBrowserUIMaterial";
-
-        // One UI raycast per frame shared by all views, used to let the topmost view take the pointer.
-        private static readonly List<RaycastResult> raycastResults = new();
-        private static PointerEventData pointerEventData;
-        private static int raycastFrame = -1;
-        private static Vector2 raycastPosition;
-        private static GameObject topmostHit;
-        private static Texture2D transparentTexture;
 
         private void Awake()
         {

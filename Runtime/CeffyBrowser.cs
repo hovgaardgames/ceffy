@@ -15,10 +15,10 @@ namespace Ceffy
     {
         private static readonly Dictionary<int, CeffyBrowser> activeBrowsers = new();
 
+        private int browserId = -1;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => activeBrowsers.Clear();
-
-        private int browserId = -1;
 
         public int Width { get; private set; }
         public int Height { get; private set; }

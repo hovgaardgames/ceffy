@@ -19,6 +19,10 @@ namespace Ceffy
         private static readonly object instanceLock = new();
         private static WebBrowserRuntime instance;
 
+        private bool started;
+        private bool ready;
+        private int remoteDebuggingPortRequested;
+
         /// <summary>
         /// When true, Ceffy logs detailed lifecycle and diagnostics messages.
         /// Errors and warnings are always logged regardless of this setting.
@@ -70,10 +74,6 @@ namespace Ceffy
                 }
             }
         }
-
-        private bool started;
-        private bool ready;
-        private int remoteDebuggingPortRequested;
 
         public bool IsReady => ready;
 

@@ -16,6 +16,8 @@ namespace Ceffy
     [DisallowMultipleComponent]
     public class CeffyInstance : MonoBehaviour
     {
+        private const double ZoomBase = 1.2;
+
         /// <summary>
         /// Port used for remote debugging. Default: 9222. Set before any CeffyInstance is enabled to override.
         /// </summary>
@@ -30,6 +32,9 @@ namespace Ceffy
         /// <inheritdoc cref="SharedAtlasWidth"/>
         public static int SharedAtlasHeight = 2048;
 
+        private static readonly Regex StreamingAssetsUrlRegex =
+            new(@"^streaming-assets:(//)?(.*)$", RegexOptions.IgnoreCase);
+
         public string StartUrl = "";
 
         [Tooltip("Run this page in a browser shared with every other CeffyInstance that has this enabled, " +
@@ -41,9 +46,6 @@ namespace Ceffy
         public bool UseSharedInstance;
 
         public float ResizeDelay = 0.25f;
-
-        private static readonly Regex StreamingAssetsUrlRegex =
-            new Regex(@"^streaming-assets:(//)?(.*)$", RegexOptions.IgnoreCase);
 
         [Tooltip("Log detailed Ceffy lifecycle and diagnostics to the Unity console. Errors and warnings are " +
                  "always logged.")]
@@ -75,6 +77,20 @@ namespace Ceffy
         [Tooltip("Initial height of the browser viewport.")]
         public int Height = 600;
 
+        private CeffyBrowser browser;
+        private CeffySharedHost sharedHost;
+        private CeffySharedHost.Slot sharedSlot;
+        private bool isShared;
+        private bool warnedSharedZoom;
+
+        private RectTransform cachedRectTransform;
+        private Canvas cachedCanvas;
+        private Camera cachedCanvasCamera;
+        private readonly Vector3[] worldCorners = new Vector3[4];
+        private int lastViewportWidth = -1;
+        private int lastViewportHeight = -1;
+        private float resizeTimer;
+
         public event Action<string> OnMessageFromCeffy;
         public event Action<LogLevel, string, string, int> OnConsoleMessage;
         public event Action<int, int> OnViewportResized;
@@ -99,20 +115,6 @@ namespace Ceffy
         public Rect UvRect => isShared && sharedSlot != null
             ? CeffyUv.GetUvRect(sharedSlot.Content, sharedHost.Browser.Width, sharedHost.Browser.Height)
             : CeffyUv.FullTexture;
-
-        private CeffyBrowser browser;
-        private CeffySharedHost sharedHost;
-        private CeffySharedHost.Slot sharedSlot;
-        private bool isShared;
-        private bool warnedSharedZoom;
-
-        private RectTransform cachedRectTransform;
-        private Canvas cachedCanvas;
-        private Camera cachedCanvasCamera;
-        private readonly Vector3[] worldCorners = new Vector3[4];
-        private int lastViewportWidth = -1;
-        private int lastViewportHeight = -1;
-        private float resizeTimer;
 
         private void Reset()
         {
@@ -456,8 +458,6 @@ namespace Ceffy
         #endregion
 
         #region Zoom
-
-        private const double ZoomBase = 1.2;
 
         /// <summary>
         /// Set the browser zoom level (0.0 = 100%). Uses Chrome's logarithmic scale:

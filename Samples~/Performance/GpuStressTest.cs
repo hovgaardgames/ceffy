@@ -28,9 +28,22 @@ namespace Ceffy.Demos.Performance
         [Tooltip("Assign GpuStressShader here to ensure it's included in builds")]
         public Shader stressShader;
 
+        [Header("Runtime GUI")]
+        public bool showGui = true;
+        public KeyCode toggleGuiKey = KeyCode.F1;
+
         private Material _stressMaterial;
         private GameObject[] _stressObjects;
         private Mesh _quadMesh;
+
+        private bool _guiExpanded = true;
+        private Rect _windowRect = new Rect(10, 10, 320, 400);
+        private GUIStyle _windowStyle;
+        private GUIStyle _labelStyle;
+        private GUIStyle _toggleStyle;
+        private GUIStyle _sliderStyle;
+        private GUIStyle _buttonStyle;
+        private bool _stylesInitialized;
 
         private void Start()
         {
@@ -191,19 +204,6 @@ namespace Ceffy.Demos.Performance
         }
 
         #region Runtime GUI
-
-        [Header("Runtime GUI")]
-        public bool showGui = true;
-        public KeyCode toggleGuiKey = KeyCode.F1;
-
-        private bool _guiExpanded = true;
-        private Rect _windowRect = new Rect(10, 10, 320, 400);
-        private GUIStyle _windowStyle;
-        private GUIStyle _labelStyle;
-        private GUIStyle _toggleStyle;
-        private GUIStyle _sliderStyle;
-        private GUIStyle _buttonStyle;
-        private bool _stylesInitialized;
 
         private void InitStyles()
         {

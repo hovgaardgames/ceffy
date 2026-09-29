@@ -5,8 +5,8 @@ namespace Ceffy.Bridge.Editor
 {
     internal static class CeffyBridgePreferences
     {
-        private const string PrefKey = "Ceffy_TypeScriptOutputPath";
         public const string TypeScriptFileName = "ceffy-bridge.d.ts";
+        private const string PrefKey = "Ceffy_TypeScriptOutputPath";
 
         public static string TypeScriptOutputPath
         {
