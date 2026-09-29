@@ -57,7 +57,8 @@ namespace Ceffy.Bridge.Editor
 
             File.WriteAllText(outputPath, ts);
             Debug.Log($"[Ceffy Bridge] Generated TypeScript declarations at {outputPath} " +
-                      $"({unityMethodInterfaces.Count + uiMethodInterfaces.Count} interfaces, {discoveredModels.Count} models)");
+                      $"({unityMethodInterfaces.Count + uiMethodInterfaces.Count} interfaces, " +
+                      $"{discoveredModels.Count} models)");
         }
 
         #region Type walking
@@ -193,7 +194,8 @@ namespace Ceffy.Bridge.Editor
             {
                 var parameterStrings = new List<string>();
                 foreach (var parameter in method.GetParameters())
-                    parameterStrings.Add($"{BridgeNaming.ToCamelCase(parameter.Name)}: {MapType(parameter.ParameterType)}");
+                    parameterStrings.Add(
+                        $"{BridgeNaming.ToCamelCase(parameter.Name)}: {MapType(parameter.ParameterType)}");
                 var paramList = string.Join(", ", parameterStrings);
                 var jsMethodName = BridgeNaming.ToCamelCase(method.Name);
 

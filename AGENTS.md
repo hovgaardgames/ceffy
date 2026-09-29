@@ -1,5 +1,13 @@
 # Agent instructions
 
+## Code changes
+
+Follow [CONTRIBUTING.md](CONTRIBUTING.md) for code style, field order, checks, and public API compatibility. Treat [`.editorconfig`](.editorconfig) as the source for automated C# formatting and advisory naming suggestions.
+
+Keep fields at the top of each class, including nested classes, in this order: public const, private const, public static, private static, public instance, private serialized, public `[HideInInspector]`, then other private instance fields. Move attributes and documentation with their fields, and preserve initializer behavior. Do not rename existing public API solely to satisfy a naming preference.
+
+Run relevant lint checks in check mode after changes. Do not run `-Fix`, reformat files, or build the Unity project unless the user asks for it.
+
 ## Commits and pull requests
 
 This repo uses [release-please](https://github.com/googleapis/release-please), which builds the changelog and version bumps from **squash-merged PR titles** on `main`. Manual `CHANGELOG.md` Unreleased entries are not required for routine work.

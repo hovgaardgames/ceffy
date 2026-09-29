@@ -78,7 +78,8 @@ namespace Ceffy.Bridge
                     });
                 } else {
                     if (typeof data.id === 'number')
-                        ceffy.SendToUnity(JSON.stringify({ id: data.id, result: result !== undefined ? result : null }));
+                        ceffy.SendToUnity(
+                            JSON.stringify({ id: data.id, result: result !== undefined ? result : null }));
                 }
             } catch(err) {
                 console.error('[Ceffy Bridge] Error in UI method', data.method, err);
@@ -103,7 +104,8 @@ namespace Ceffy.Bridge
         public static string GenerateUnityMethodStub(string methodName)
         {
             var jsMethodName = BridgeNaming.ToCamelCase(methodName);
-            return $"window.ceffy.unity.{jsMethodName} = function() {{ return window.ceffy._rpc('{jsMethodName}', Array.prototype.slice.call(arguments)); }};";
+            return $"window.ceffy.unity.{jsMethodName} = function() {{ return window.ceffy._rpc('{jsMethodName}', " +
+                   $"Array.prototype.slice.call(arguments)); }};";
         }
 
         /// <summary>

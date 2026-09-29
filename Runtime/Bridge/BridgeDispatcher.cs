@@ -31,7 +31,8 @@ namespace Ceffy.Bridge
                 var jsMethodName = BridgeNaming.ToCamelCase(method.Name);
                 if (methodMap.ContainsKey(jsMethodName))
                 {
-                    Debug.LogWarning($"[Ceffy Bridge] Method '{jsMethodName}' is already bound. Skipping duplicate from {interfaceType.Name}.");
+                    Debug.LogWarning($"[Ceffy Bridge] Method '{jsMethodName}' is already bound. " +
+                                     $"Skipping duplicate from {interfaceType.Name}.");
                     continue;
                 }
                 methodMap[jsMethodName] = (method, implementation);

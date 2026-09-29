@@ -4,10 +4,10 @@ namespace Ceffy.Demos.Zoom
 {
     public sealed class ZoomDemo : MonoBehaviour
     {
+        private static readonly double[] ZoomPresets = { 25, 50, 75, 90, 100, 110, 125, 150, 175, 200, 250, 300 };
+
         [Tooltip("Optional. If not set, the component will search the scene.")]
         public CeffyInstance ceffyInstance;
-
-        private static readonly double[] ZoomPresets = { 25, 50, 75, 90, 100, 110, 125, 150, 175, 200, 250, 300 };
 
         private double _currentPercent = 100;
         private bool _nativeAvailable = true;

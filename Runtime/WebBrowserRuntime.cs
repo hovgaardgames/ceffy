@@ -7,7 +7,6 @@ using UnityEngine;
 
 namespace Ceffy
 {
-    
     /// <summary>
     /// Singleton manager for the Ceffy native CEF runtime.
     /// - Starts lazily (first use).
@@ -19,6 +18,10 @@ namespace Ceffy
         private const string CeffyHelper = "CeffyHelper.ceffy";
         private static readonly object instanceLock = new();
         private static WebBrowserRuntime instance;
+
+        private bool started;
+        private bool ready;
+        private int remoteDebuggingPortRequested;
 
         /// <summary>
         /// When true, Ceffy logs detailed lifecycle and diagnostics messages.
@@ -34,14 +37,14 @@ namespace Ceffy
             {
                 try
                 {
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
                     // In the Editor, avoid native CEF shutdown during play-mode/domain reload cycles.
                     // Re-initializing libcef in the same editor process is unstable and can crash.
                     if (instance.gameObject)
                         Destroy(instance.gameObject);
-    #else
+#else
                     instance.ForceShutdownAndCleanup();
-    #endif
+#endif
                 }
                 catch (Exception ex)
                 {
@@ -72,20 +75,16 @@ namespace Ceffy
             }
         }
 
-        private bool started;
-        private bool ready;
-        private int remoteDebuggingPortRequested;
-
         public bool IsReady => ready;
 
         private void Awake()
         {
             DontDestroyOnLoad(gameObject);
 
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
             UnityEditor.EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
             UnityEditor.EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
-    #endif
+#endif
 
             Application.quitting -= Shutdown;
             Application.quitting += Shutdown;
@@ -93,14 +92,14 @@ namespace Ceffy
 
         private void OnDestroy()
         {
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
             UnityEditor.EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-    #endif
+#endif
 
             Application.quitting -= Shutdown;
         }
 
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
         private static void OnPlayModeStateChanged(UnityEditor.PlayModeStateChange state)
         {
             if (state == UnityEditor.PlayModeStateChange.ExitingPlayMode)
@@ -113,7 +112,7 @@ namespace Ceffy
                 }
             }
         }
-    #endif
+#endif
 
         /// <summary>
         /// Starts the runtime if it isn't already started.
@@ -126,7 +125,8 @@ namespace Ceffy
                 if (started)
                 {
                     if (remoteDebuggingPort > 0 && remoteDebuggingPortRequested == 0)
-                        Debug.LogWarning($"Ceffy runtime already started without remote debugging. Ignoring later request for port {remoteDebuggingPort}.");
+                        Debug.LogWarning($"Ceffy runtime already started without remote debugging." +
+                                         $" Ignoring later request for port {remoteDebuggingPort}.");
                     return;
                 }
 
@@ -147,18 +147,18 @@ namespace Ceffy
 
         private static string GetHelperPath()
         {
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
             var pkgInfo = UnityEditor.PackageManager.PackageInfo
                 .FindForAssembly(typeof(NativeBridge).Assembly);
             var dir = pkgInfo?.resolvedPath ?? Path.GetFullPath("./");
             return Path.Combine(dir, "NativeRuntime", "win-x64", CeffyHelper);
-    #else
+#else
             var assembly = Assembly.GetExecutingAssembly();
             var managedDir = Path.GetDirectoryName(assembly.Location);
             var dataDir = Path.GetDirectoryName(managedDir);
             var dir = Path.GetDirectoryName(dataDir);
             return Path.GetFullPath(Path.Combine(dir, "Ceffy.Runtime", "win-x64", CeffyHelper));
-    #endif
+#endif
         }
 
         private static string GetRuntimeDirectory()
@@ -166,13 +166,13 @@ namespace Ceffy
             return Path.GetDirectoryName(GetHelperPath());
         }
 
-    #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
         [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern bool SetDllDirectory(string lpPathName);
 
         [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern IntPtr LoadLibrary(string lpFileName);
-    #endif
+#endif
 
         private bool PrepareNativeBridge()
         {
@@ -190,7 +190,7 @@ namespace Ceffy
                 return false;
             }
 
-    #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
             SetDllDirectory(runtimeDir);
             var handle = LoadLibrary(bridgePath);
             if (handle == IntPtr.Zero)
@@ -199,7 +199,7 @@ namespace Ceffy
                 Debug.LogError($"[Ceffy] Failed to load native bridge '{bridgePath}' (Win32={err}).");
                 return false;
             }
-    #endif
+#endif
 
             if (VerboseLogging)
                 Debug.Log($"[Ceffy] Native bridge loaded from: {bridgePath}");
@@ -226,7 +226,8 @@ namespace Ceffy
 
             // Use a different remote debugging port in standalone so Editor and build can run at once.
             int port = GetRemoteDebuggingPortForThisProcess();
-            // Pass Unity's GPU so CEF creates its D3D11 device on the same adapter (same WDDM priority, no cross-adapter copy).
+            // Pass Unity's GPU so CEF creates its D3D11 device on the same adapter
+            // (same WDDM priority, no cross-adapter copy).
             uint vendorId = (uint)SystemInfo.graphicsDeviceVendorID;
             uint deviceId = (uint)SystemInfo.graphicsDeviceID;
             int result = NativeBridge.Ceffy_Initialize(cachePath, port, 0L, vendorId, deviceId);
@@ -252,15 +253,15 @@ namespace Ceffy
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Ceffy", "BrowserCache");
 
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
             var projectPath = Path.GetFullPath("./");
             var projectName = SanitizePathSegment(new DirectoryInfo(projectPath).Name);
             return Path.Combine(basePath, "Editor", projectName);
-    #else
+#else
             var company = SanitizePathSegment(Application.companyName);
             var product = SanitizePathSegment(Application.productName);
             return Path.Combine(basePath, "Player", company, product);
-    #endif
+#endif
         }
 
         private static string SanitizePathSegment(string value)
@@ -286,10 +287,10 @@ namespace Ceffy
         private int GetRemoteDebuggingPortForThisProcess()
         {
             int requested = remoteDebuggingPortRequested;
-    #if !UNITY_EDITOR
+#if !UNITY_EDITOR
             if (requested == 9222)
                 requested = 9223;
-    #endif
+#endif
             return requested;
         }
 
@@ -328,16 +329,17 @@ namespace Ceffy
                     Debug.Log("[Ceffy] Shutting down native CEF...");
                 try
                 {
-    #if UNITY_EDITOR
+#if UNITY_EDITOR
                     // Critical: avoid CefShutdown in Unity Editor play-mode cycles.
                     // CEF re-init in the same editor process is unstable and can crash.
                     // But still close browser instances so helper subprocesses can exit.
                     NativeBridge.Ceffy_CloseAllBrowsers();
                     if (VerboseLogging)
-                        Debug.Log("[Ceffy] Editor mode: closed browsers, skipping native Ceffy_Shutdown to avoid CEF re-init crash.");
-    #else
+                        Debug.Log("[Ceffy] Editor mode: closed browsers, " +
+                                  "skipping native Ceffy_Shutdown to avoid CEF re-init crash.");
+#else
                     NativeBridge.Ceffy_Shutdown();
-    #endif
+#endif
                 }
                 catch (Exception ex)
                 {

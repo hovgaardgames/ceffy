@@ -1,0 +1,25 @@
+name: Lint C#
+
+on:
+  pull_request:
+    paths:
+      - Runtime/**/*.cs
+      - Editor/**/*.cs
+      - Samples~/**/*.cs
+      - .editorconfig
+      - lint-csharp.ps1
+      - lint-csharp.csproj
+      - .github/workflows/lint-csharp.yml
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: windows-2022
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Check C# formatting and conventions
+        shell: pwsh
+        run: .\lint-csharp.ps1

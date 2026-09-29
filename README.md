@@ -75,6 +75,8 @@ After importing a sample, the included `CeffySampleStreamingAssets` editor scrip
 
 ## Development
 
+For code style, field order, checks, and pull request guidance, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ### Package Layout
 
 - `Runtime/`, `Editor/`, and `NativeRuntime/` contain the installed package.
@@ -110,6 +112,26 @@ To download and configure CEF without building, run:
 ```powershell
 .\native~\setup.ps1
 ```
+
+### C++ Formatting
+
+The C++ formatting check covers `.cpp` and `.h` files in `native~/src/` and `native~/helper/`. It uses `native~/.clang-format` and requires the Visual Studio LLVM tools. Run the check or fix formatting with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\native~\lint.ps1
+powershell -ExecutionPolicy Bypass -File .\native~\lint.ps1 -Fix
+```
+
+### C# Formatting
+
+The C# check covers `Runtime/`, `Editor/`, and `Samples~/`. See [CONTRIBUTING.md](CONTRIBUTING.md#code-style) for the formatting and naming policy.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\lint-csharp.ps1
+powershell -ExecutionPolicy Bypass -File .\lint-csharp.ps1 -Fix
+```
+
+`-Fix` changes formatting only. The `lint-csharp.csproj` file is used only by the formatter and is not part of the Unity package build.
 
 ## Testing
 

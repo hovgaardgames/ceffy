@@ -15,10 +15,10 @@ namespace Ceffy
     {
         private static readonly Dictionary<int, CeffyBrowser> activeBrowsers = new();
 
+        private int browserId = -1;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => activeBrowsers.Clear();
-
-        private int browserId = -1;
 
         public int Width { get; private set; }
         public int Height { get; private set; }
@@ -272,7 +272,8 @@ namespace Ceffy
         public void SendMouseClick(int x, int y, MouseButton button, bool isUp, int clickCount, EventFlags modifiers)
         {
             if (browserId >= 0)
-                NativeBridge.Ceffy_SendMouseClick(browserId, x, y, (int)button, isUp ? 1 : 0, clickCount, (int)modifiers);
+                NativeBridge.Ceffy_SendMouseClick(
+                    browserId, x, y, (int)button, isUp ? 1 : 0, clickCount, (int)modifiers);
         }
 
         public void SendMouseWheel(int x, int y, int deltaX, int deltaY, EventFlags modifiers)
@@ -317,10 +318,12 @@ namespace Ceffy
                 NativeBridge.Ceffy_DragSourceSystemDragEnded(browserId);
         }
 
-        public void SendKeyEvent(KeyEventType eventType, int windowsKeyCode, int nativeKeyCode, EventFlags modifiers, bool isSystemKey)
+        public void SendKeyEvent(
+            KeyEventType eventType, int windowsKeyCode, int nativeKeyCode, EventFlags modifiers, bool isSystemKey)
         {
             if (browserId >= 0)
-                NativeBridge.Ceffy_SendKeyEvent(browserId, (int)eventType, windowsKeyCode, nativeKeyCode, (int)modifiers, isSystemKey ? 1 : 0);
+                NativeBridge.Ceffy_SendKeyEvent(
+                    browserId, (int)eventType, windowsKeyCode, nativeKeyCode, (int)modifiers, isSystemKey ? 1 : 0);
         }
 
         public void KeyDown(KeyCode key, EventFlags modifiers)

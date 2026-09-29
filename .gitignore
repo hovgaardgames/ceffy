@@ -16,12 +16,15 @@ TestProject~/[Aa]ssets/[Ss]treamingAssets/
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
+/[Bb]in/
 /[Bb]uild/
 /[Bb]uilds/
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
+/[Oo]bj.meta
+/[Bb]in.meta
 
 # Native plugin build artifacts
 native~/cef/
@@ -41,6 +44,7 @@ cef.log
 ExportedObj/
 .consulo/
 *.csproj
+!/lint-csharp.csproj
 *.unityproj
 *.sln
 *.suo

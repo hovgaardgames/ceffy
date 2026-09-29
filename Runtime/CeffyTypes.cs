@@ -58,13 +58,13 @@ namespace Ceffy
     [Flags]
     public enum DragOperation : uint
     {
-        None    = 0,
-        Copy    = 1 << 0,
-        Link    = 1 << 1,
+        None = 0,
+        Copy = 1 << 0,
+        Link = 1 << 1,
         Generic = 1 << 2,
         Private = 1 << 3,
-        Move    = 1 << 4,
-        Delete  = 1 << 5,
-        Every   = 0xFFFFFFFF,
+        Move = 1 << 4,
+        Delete = 1 << 5,
+        Every = 0xFFFFFFFF,
     }
 }

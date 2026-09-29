@@ -37,7 +37,8 @@ namespace Ceffy
                 if (gfxType == GraphicsDeviceType.Direct3D11)
                     return CreateD3D11(sharedHandle, width, height);
 
-                Debug.LogError($"D3D11SharedTexture: Unsupported graphics API: {gfxType}. Only D3D11 and D3D12 are supported.");
+                Debug.LogError(
+                    $"D3D11SharedTexture: Unsupported graphics API: {gfxType}. Only D3D11 and D3D12 are supported.");
                 return null;
             }
             catch (Exception e)
@@ -139,7 +140,8 @@ namespace Ceffy
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int OpenSharedHandleD3D12Delegate(IntPtr pThis, IntPtr ntHandle, ref Guid riid, out IntPtr ppvObj);
+        private delegate int OpenSharedHandleD3D12Delegate(
+            IntPtr pThis, IntPtr ntHandle, ref Guid riid, out IntPtr ppvObj);
 
         #endregion
 
@@ -228,7 +230,8 @@ namespace Ceffy
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate int OpenSharedResourceD3D11Delegate(IntPtr pThis, IntPtr hResource, ref Guid riid, out IntPtr ppResource);
+        private delegate int OpenSharedResourceD3D11Delegate(
+            IntPtr pThis, IntPtr hResource, ref Guid riid, out IntPtr ppResource);
 
         // ID3D11Device::CreateShaderResourceView is at vtable index 7
         private static IntPtr CreateShaderResourceView(IntPtr device, IntPtr texture)

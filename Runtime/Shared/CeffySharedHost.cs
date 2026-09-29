@@ -15,29 +15,7 @@ namespace Ceffy
         private const int SlotPadding = 2;
         private const string HostPageResource = "CeffySharedHost.html";
 
-        internal sealed class Slot
-        {
-            public readonly int Id;
-            public readonly string IdString;
-            public readonly CeffyInstance Owner;
-            public RectInt Packed;
-            public RectInt Content;
-            public string Url;
-            public bool Loaded;
-            public readonly List<HostMessage> Pending = new();
-
-            public Slot(int id, CeffyInstance owner)
-            {
-                Id = id;
-                IdString = id.ToString();
-                Owner = owner;
-            }
-        }
-
         private static CeffySharedHost instance;
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetStatics() => instance = null;
 
         private CeffyBrowser browser;
         private AtlasPacker packer;
@@ -46,6 +24,9 @@ namespace Ceffy
         private int nextSlotId = 1;
         private Slot pointerOwner;
         private Slot focusedSlot;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => instance = null;
 
         public CeffyBrowser Browser => browser;
         public Texture2D Texture => browser?.Texture;
@@ -169,8 +150,12 @@ namespace Ceffy
             if (hostReady)
                 SendToHost(new HostMessage
                 {
-                    type = "layout", id = slot.IdString,
-                    x = content.x, y = content.y, w = content.width, h = content.height
+                    type = "layout",
+                    id = slot.IdString,
+                    x = content.x,
+                    y = content.y,
+                    w = content.width,
+                    h = content.height
                 });
             return true;
         }
@@ -282,8 +267,13 @@ namespace Ceffy
             var rect = slot.Content;
             SendToHost(new HostMessage
             {
-                type = "add", id = slot.IdString, src = slot.Url,
-                x = rect.x, y = rect.y, w = rect.width, h = rect.height
+                type = "add",
+                id = slot.IdString,
+                src = slot.Url,
+                x = rect.x,
+                y = rect.y,
+                w = rect.width,
+                h = rect.height
             });
         }
 
@@ -340,7 +330,8 @@ namespace Ceffy
             browser.SendMouseLeave();
         }
 
-        public void SendMouseClick(Slot slot, int x, int y, MouseButton button, bool isUp, int clickCount, EventFlags modifiers)
+        public void SendMouseClick(
+            Slot slot, int x, int y, MouseButton button, bool isUp, int clickCount, EventFlags modifiers)
         {
             if (!ToAtlas(slot, ref x, ref y))
                 return;
@@ -444,6 +435,25 @@ namespace Ceffy
             public int h;
             public int level;
             public int line;
+        }
+
+        internal sealed class Slot
+        {
+            public readonly int Id;
+            public readonly string IdString;
+            public readonly CeffyInstance Owner;
+            public RectInt Packed;
+            public RectInt Content;
+            public string Url;
+            public bool Loaded;
+            public readonly List<HostMessage> Pending = new();
+
+            public Slot(int id, CeffyInstance owner)
+            {
+                Id = id;
+                IdString = id.ToString();
+                Owner = owner;
+            }
         }
     }
 }
