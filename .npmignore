@@ -4,4 +4,6 @@
 /.gitattributes
 /.gitignore
 /.release-please-manifest.json
+/.release-please-manifest.json.meta
 /release-please-config.json
+/release-please-config.json.meta
