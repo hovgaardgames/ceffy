@@ -122,14 +122,14 @@ powershell -ExecutionPolicy Bypass -File .\native~\lint.ps1 -Fix
 
 ### C# Formatting
 
-The C# formatting check covers only `Runtime/` and `Editor/`. It uses the repository's `.editorconfig` and requires the .NET 10 SDK. Run the check to list files that need formatting, or apply the same formatter to those files:
+The C# check covers every `.cs` file in `Runtime/`, `Editor/`, and `Samples~/`. It uses `.editorconfig` and requires the .NET 10 SDK. Formatting is enforced; lines over 120 characters and obvious LINQ use are reported as warnings. The text checks aid review and are not a complete C# analyzer. Rider and Visual Studio use `.editorconfig` for formatting and naming guidance.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\lint-csharp.ps1
 powershell -ExecutionPolicy Bypass -File .\lint-csharp.ps1 -Fix
 ```
 
-Rider reads `.editorconfig` automatically. Use **Code > Reformat Code** while editing C# files in these folders; run the check before submitting a PR to confirm the .NET formatter agrees. The `lint-csharp.csproj` file is used only by the formatting tool and is not part of the Unity package build.
+Use **Code > Reformat Code** in Rider while editing. `-Fix` changes formatting only; warnings need manual review. CI checks all three folders. The `lint-csharp.csproj` file is used only by the formatting tool and is not part of the Unity package build.
 
 ## Testing
 

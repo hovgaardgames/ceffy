@@ -1,8 +1,9 @@
 root = true
 
-[{Runtime,Editor}/**/*.cs]
+[{Runtime,Editor,Samples~}/**/*.cs]
 indent_style = space
 indent_size = 4
+max_line_length = 120
 charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
@@ -26,3 +27,33 @@ csharp_space_after_colon_in_inheritance_clause = true
 csharp_space_before_comma = false
 csharp_space_after_comma = true
 csharp_space_around_binary_operators = before_and_after
+dotnet_diagnostic.IDE1006.severity = suggestion
+dotnet_naming_rule.static_fields.symbols = static_fields
+dotnet_naming_rule.static_fields.style = pascal_case
+dotnet_naming_rule.static_fields.severity = suggestion
+dotnet_naming_symbols.static_fields.applicable_kinds = field
+dotnet_naming_symbols.static_fields.required_modifiers = static
+dotnet_naming_rule.constant_fields.symbols = constant_fields
+dotnet_naming_rule.constant_fields.style = pascal_case
+dotnet_naming_rule.constant_fields.severity = suggestion
+dotnet_naming_symbols.constant_fields.applicable_kinds = field
+dotnet_naming_symbols.constant_fields.required_modifiers = const
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_rule.private_static_fields.symbols = private_static_fields
+dotnet_naming_rule.private_static_fields.style = pascal_case
+dotnet_naming_rule.private_static_fields.severity = suggestion
+dotnet_naming_symbols.private_static_fields.applicable_kinds = field
+dotnet_naming_symbols.private_static_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_static_fields.required_modifiers = static
+dotnet_naming_rule.private_constant_fields.symbols = private_constant_fields
+dotnet_naming_rule.private_constant_fields.style = pascal_case
+dotnet_naming_rule.private_constant_fields.severity = suggestion
+dotnet_naming_symbols.private_constant_fields.applicable_kinds = field
+dotnet_naming_symbols.private_constant_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_constant_fields.required_modifiers = const
+dotnet_naming_rule.private_fields.symbols = private_fields
+dotnet_naming_rule.private_fields.style = camel_case
+dotnet_naming_rule.private_fields.severity = suggestion
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.camel_case.capitalization = camel_case

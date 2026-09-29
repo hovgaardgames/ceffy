@@ -38,17 +38,20 @@ namespace Ceffy
                  "and tooltips. Leave off for full-screen or heavy UIs, and for untrusted content: shared pages can " +
                  "reach the host page and each other. Zoom is not supported in shared mode. " +
                  "Changes take effect the next time the component is enabled.")]
-        public bool UseSharedInstance = false;
+        public bool UseSharedInstance;
 
         public float ResizeDelay = 0.25f;
 
-        private static readonly Regex StreamingAssetsUrlRegex = new Regex(@"^streaming-assets:(//)?(.*)$", RegexOptions.IgnoreCase);
+        private static readonly Regex StreamingAssetsUrlRegex =
+            new Regex(@"^streaming-assets:(//)?(.*)$", RegexOptions.IgnoreCase);
 
-        [Tooltip("Log detailed Ceffy lifecycle and diagnostics to the Unity console. Errors and warnings are always logged.")]
-        public bool VerboseLogging = false;
+        [Tooltip("Log detailed Ceffy lifecycle and diagnostics to the Unity console. Errors and warnings are " +
+                 "always logged.")]
+        public bool VerboseLogging;
 
-        [Tooltip("Enable Chrome DevTools remote debugging on port 9222. Override port via CeffyInstance.RemoteDebuggingPort.")]
-        public bool RemoteDebugging = false;
+        [Tooltip("Enable Chrome DevTools remote debugging on port 9222. Override port via " +
+                 "CeffyInstance.RemoteDebuggingPort.")]
+        public bool RemoteDebugging;
 
         [Tooltip("Automatically resize the browser viewport to match this RectTransform's size in screen pixels. " +
                  "When off, the RectTransform is sized to Width x Height instead.")]
@@ -295,14 +298,14 @@ namespace Ceffy
         {
             if (string.IsNullOrEmpty(originalUrl))
                 return originalUrl;
-                
+
             var match = StreamingAssetsUrlRegex.Match(originalUrl);
             if (match.Success)
             {
                 var urlPath = match.Groups[2].Captures[0].Value;
-                
+
                 var streamingAssetsPath = Application.streamingAssetsPath;
-                
+
                 string fileUrl;
                 if (streamingAssetsPath.Contains("://"))
                 {
@@ -313,12 +316,12 @@ namespace Ceffy
                     var fullPath = Path.GetFullPath(Path.Combine(streamingAssetsPath, urlPath));
                     fileUrl = "file:///" + fullPath.Replace("\\", "/").Replace(" ", "%20");
                 }
-                
+
                 if (WebBrowserRuntime.VerboseLogging)
                     Debug.Log($"[Ceffy] Transformed streaming-assets URL: {originalUrl} -> {fileUrl}");
                 return fileUrl;
             }
-            
+
             return originalUrl;
         }
 
@@ -492,9 +495,9 @@ namespace Ceffy
         }
 
         #endregion
-        
+
         #region Mouse Input
-        
+
         /// <summary>
         /// Send a mouse move event. Coordinates are relative to the page view (0,0 = top-left).
         /// </summary>
@@ -505,7 +508,7 @@ namespace Ceffy
             else
                 browser?.SendMouseMove(x, y, modifiers);
         }
-        
+
         /// <summary>
         /// Send a mouse leave event (cursor left the page view).
         /// </summary>
@@ -516,29 +519,31 @@ namespace Ceffy
             else
                 browser?.SendMouseLeave();
         }
-        
+
         /// <summary>
         /// Send a mouse button down event.
         /// </summary>
-        public void SendMouseDown(int x, int y, MouseButton button = MouseButton.Left, int clickCount = 1, EventFlags modifiers = EventFlags.None)
+        public void SendMouseDown(int x, int y, MouseButton button = MouseButton.Left, int clickCount = 1,
+            EventFlags modifiers = EventFlags.None)
         {
             if (isShared)
                 sharedHost?.SendMouseClick(sharedSlot, x, y, button, false, clickCount, modifiers);
             else
                 browser?.SendMouseClick(x, y, button, false, clickCount, modifiers);
         }
-        
+
         /// <summary>
         /// Send a mouse button up event.
         /// </summary>
-        public void SendMouseUp(int x, int y, MouseButton button = MouseButton.Left, int clickCount = 1, EventFlags modifiers = EventFlags.None)
+        public void SendMouseUp(int x, int y, MouseButton button = MouseButton.Left, int clickCount = 1,
+            EventFlags modifiers = EventFlags.None)
         {
             if (isShared)
                 sharedHost?.SendMouseClick(sharedSlot, x, y, button, true, clickCount, modifiers);
             else
                 browser?.SendMouseClick(x, y, button, true, clickCount, modifiers);
         }
-        
+
         /// <summary>
         /// Send a mouse wheel event.
         /// </summary>
@@ -549,16 +554,17 @@ namespace Ceffy
             else
                 browser?.SendMouseWheel(x, y, deltaX, deltaY, modifiers);
         }
-        
+
         #endregion
-        
+
         #region Drag Input
 
         /// <summary>
         /// Begin a drag-target operation at the given position. Must be called once
         /// after receiving OnDragStart, before any SendDragTargetOver calls.
         /// </summary>
-        public void SendDragTargetEnter(int x, int y, EventFlags modifiers = EventFlags.None, DragOperation allowedOps = DragOperation.Every)
+        public void SendDragTargetEnter(
+            int x, int y, EventFlags modifiers = EventFlags.None, DragOperation allowedOps = DragOperation.Every)
         {
             if (isShared)
                 sharedHost?.SendDragTargetEnter(sharedSlot, x, y, modifiers, allowedOps);
@@ -569,7 +575,8 @@ namespace Ceffy
         /// <summary>
         /// Update the drag-target position. Call for each mouse move while a drag is active.
         /// </summary>
-        public void SendDragTargetOver(int x, int y, EventFlags modifiers = EventFlags.None, DragOperation allowedOps = DragOperation.Every)
+        public void SendDragTargetOver(
+            int x, int y, EventFlags modifiers = EventFlags.None, DragOperation allowedOps = DragOperation.Every)
         {
             if (isShared)
                 sharedHost?.SendDragTargetOver(sharedSlot, x, y, modifiers, allowedOps);
@@ -638,7 +645,7 @@ namespace Ceffy
             if (isShared && sharedHost)
                 sharedHost.SetFocus(sharedSlot, focused);
         }
-        
+
         /// <summary>
         /// Send a keyboard event to the browser.
         /// </summary>
@@ -647,11 +654,12 @@ namespace Ceffy
         /// <param name="nativeKeyCode">Platform-specific native key code (scan code on Windows).</param>
         /// <param name="modifiers">Keyboard modifiers.</param>
         /// <param name="isSystemKey">True if this is a system key (e.g., Alt+key).</param>
-        public void SendKeyEvent(KeyEventType eventType, int windowsKeyCode, int nativeKeyCode, EventFlags modifiers = EventFlags.None, bool isSystemKey = false)
+        public void SendKeyEvent(KeyEventType eventType, int windowsKeyCode, int nativeKeyCode,
+            EventFlags modifiers = EventFlags.None, bool isSystemKey = false)
         {
             KeyboardTarget?.SendKeyEvent(eventType, windowsKeyCode, nativeKeyCode, modifiers, isSystemKey);
         }
-        
+
         /// <summary>
         /// Send a character input event (for text input).
         /// </summary>
@@ -661,7 +669,7 @@ namespace Ceffy
         {
             KeyboardTarget?.SendKeyEvent(KeyEventType.Char, character, 0, modifiers, false);
         }
-        
+
         /// <summary>
         /// Send a key-down event from a Unity KeyCode.
         /// </summary>
@@ -669,7 +677,7 @@ namespace Ceffy
         {
             KeyboardTarget?.KeyDown(key, modifiers);
         }
-        
+
         /// <summary>
         /// Send a key-up event from a Unity KeyCode.
         /// </summary>

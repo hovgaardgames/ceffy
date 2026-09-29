@@ -137,7 +137,8 @@ namespace Ceffy.Bridge.Editor
             if (!hasPath)
             {
                 EditorGUILayout.HelpBox(
-                    $"Choose an output location. The generated file name is always {CeffyBridgePreferences.TypeScriptFileName}.",
+                    $"Choose an output location. The generated file name is always " +
+                    $"{CeffyBridgePreferences.TypeScriptFileName}.",
                     MessageType.Warning);
             }
             else
@@ -187,7 +188,8 @@ namespace Ceffy.Bridge.Editor
             ref bool foldout, bool isUnityMethods, Color accent)
         {
             EditorGUILayout.Space(4);
-            var titleMarkup = $"<color={ToHex(accent)}>{title}</color>  <color={ToHex(MutedText)}>({interfaces.Count})</color>";
+            var titleMarkup = $"<color={ToHex(accent)}>{title}</color>  " +
+                              $"<color={ToHex(MutedText)}>({interfaces.Count})</color>";
             foldout = EditorGUILayout.Foldout(foldout, titleMarkup, true, RichFoldoutHeader);
             if (!foldout) return;
 
@@ -232,7 +234,8 @@ namespace Ceffy.Bridge.Editor
         private void DrawModelsSection()
         {
             EditorGUILayout.Space(4);
-            var titleMarkup = $"<color={ToHex(ModelsAccent)}>Shared Models</color>  <color={ToHex(MutedText)}>({models.Count})</color>";
+            var titleMarkup = $"<color={ToHex(ModelsAccent)}>Shared Models</color>  " +
+                              $"<color={ToHex(MutedText)}>({models.Count})</color>";
             foldModels = EditorGUILayout.Foldout(foldModels, titleMarkup, true, RichFoldoutHeader);
             if (!foldModels) return;
 
@@ -244,7 +247,8 @@ namespace Ceffy.Bridge.Editor
             else
             {
                 var orderedModels = new List<Type>(models);
-                orderedModels.Sort((left, right) => string.Compare(left.Name, right.Name, StringComparison.CurrentCulture));
+                orderedModels.Sort(
+                    (left, right) => string.Compare(left.Name, right.Name, StringComparison.CurrentCulture));
                 foreach (var model in orderedModels)
                 {
                     string kind;
@@ -268,7 +272,8 @@ namespace Ceffy.Bridge.Editor
                     EditorGUILayout.BeginHorizontal();
                     isExpanded = EditorGUILayout.Foldout(
                         isExpanded,
-                        $"<color={ToHex(GetModelAccent(model))}>{model.Name}</color>  <color={ToHex(MutedText)}>({kind}, {detail})</color>",
+                        $"<color={ToHex(GetModelAccent(model))}>{model.Name}</color>  " +
+                        $"<color={ToHex(MutedText)}>({kind}, {detail})</color>",
                         true,
                         RichFoldout);
                     modelFoldouts[model] = isExpanded;
@@ -288,12 +293,14 @@ namespace Ceffy.Bridge.Editor
                         {
                             foreach (var field in model.GetFields(BindingFlags.Public | BindingFlags.Instance))
                                 EditorGUILayout.LabelField(
-                                    $"<color={ToHex(MutedText)}>{field.Name}: {FormatTypeName(field.FieldType)}</color>",
+                                    $"<color={ToHex(MutedText)}>{field.Name}: " +
+                                    $"{FormatTypeName(field.FieldType)}</color>",
                                     RichMiniLabel);
 
                             foreach (var property in model.GetProperties(BindingFlags.Public | BindingFlags.Instance))
                                 EditorGUILayout.LabelField(
-                                    $"<color={ToHex(MutedText)}>{property.Name}: {FormatTypeName(property.PropertyType)}</color>",
+                                    $"<color={ToHex(MutedText)}>{property.Name}: " +
+                                    $"{FormatTypeName(property.PropertyType)}</color>",
                                     RichMiniLabel);
                         }
                         EditorGUI.indentLevel--;

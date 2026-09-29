@@ -14,8 +14,8 @@ namespace Ceffy
     public class CeffyInstanceView : MonoBehaviour
     {
         [Tooltip("Enable debug logging for mouse events")]
-        public bool debugMouseEvents = false;
-        
+        public bool debugMouseEvents;
+
         private CeffyInstance instance;
         private RawImage rawImage;
         private RectTransform rectTransform;
@@ -28,7 +28,7 @@ namespace Ceffy
         private int lastBrowserX = -1;
         private int lastBrowserY = -1;
         private Material browserMaterial;
-        
+
         // Click tracking for double-click support
         private float[] lastClickTime = new float[3];
         private int[] clickCount = new int[3];
@@ -38,8 +38,8 @@ namespace Ceffy
         private bool isDragging;
         private bool isDragOutside;
         private DragOperation dragAllowedOps;
-        
-        private const string BROWSER_MATERIAL_NAME = "WebBrowserUIMaterial";
+
+        private const string BrowserMaterialName = "WebBrowserUIMaterial";
 
         // One UI raycast per frame shared by all views, used to let the topmost view take the pointer.
         private static readonly List<RaycastResult> raycastResults = new();
@@ -99,15 +99,18 @@ namespace Ceffy
             if (transparentTexture)
                 return transparentTexture;
 
-            transparentTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false) { hideFlags = HideFlags.HideAndDontSave };
+            transparentTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false)
+            {
+                hideFlags = HideFlags.HideAndDontSave
+            };
             transparentTexture.SetPixel(0, 0, Color.clear);
             transparentTexture.Apply();
             return transparentTexture;
         }
-        
+
         private void SetupBrowserMaterial()
         {
-            var sourceMaterial = Resources.Load<Material>(BROWSER_MATERIAL_NAME);
+            var sourceMaterial = Resources.Load<Material>(BrowserMaterialName);
             if (sourceMaterial)
             {
                 browserMaterial = new Material(sourceMaterial);
@@ -115,7 +118,7 @@ namespace Ceffy
             }
             else
             {
-                Debug.LogWarning($"CeffyInstanceView: Material '{BROWSER_MATERIAL_NAME}' not found in Resources. " +
+                Debug.LogWarning($"CeffyInstanceView: Material '{BrowserMaterialName}' not found in Resources. " +
                                "Colors may appear incorrect in Linear color space mode.");
             }
         }
@@ -156,7 +159,7 @@ namespace Ceffy
 
             rawImage.material = isD3D12NonNativeFullscreen ? null : browserMaterial;
         }
-        
+
         private void UpdateTexture()
         {
             Texture2D currentTexture = instance.Texture;
@@ -171,15 +174,15 @@ namespace Ceffy
         }
 
         #region Mouse Input
-        
+
         private void HandleMouseInput()
         {
             Vector2 mousePos = WebBrowserInput.GetMousePosition();
             bool isInside = IsPointerOver(mousePos);
-            
+
             if (WebBrowserInput.GetMouseButtonDown(0))
                 SetFocus(isInside);
-            
+
             if (isInside != isPointerInside)
             {
                 if (isInside)
@@ -193,13 +196,13 @@ namespace Ceffy
                     HandlePointerExit();
                 }
             }
-            
+
             if (!isInside)
                 return;
-            
+
             if (!ScreenToBrowserCoords(mousePos, out int x, out int y))
                 return;
-            
+
             if (isDragging && isDragOutside)
             {
                 // Pointer re-entered during an active drag — restart drag target tracking.
@@ -210,7 +213,7 @@ namespace Ceffy
             if (instance.InputMouseMove && mousePos != lastMousePosition)
             {
                 lastMousePosition = mousePos;
-                
+
                 if (x != lastBrowserX || y != lastBrowserY)
                 {
                     lastBrowserX = x;
@@ -229,7 +232,7 @@ namespace Ceffy
                     }
                 }
             }
-            
+
             if (instance.InputMouseClick)
             {
                 if (isDragging)
@@ -259,12 +262,13 @@ namespace Ceffy
                             else
                                 clickCount[button] = 1;
                             lastClickTime[button] = Time.unscaledTime;
-                            
+
                             if (debugMouseEvents)
-                                Debug.Log($"[CeffyInstanceView] Mouse down: button={button}, clicks={clickCount[button]}");
+                                Debug.Log(
+                                    $"[CeffyInstanceView] Mouse down: button={button}, clicks={clickCount[button]}");
                             instance.SendMouseDown(x, y, ToMouseButton(button), clickCount[button], GetModifiers());
                         }
-                        
+
                         if (WebBrowserInput.GetMouseButtonUp(button))
                         {
                             if (debugMouseEvents)
@@ -274,7 +278,7 @@ namespace Ceffy
                     }
                 }
             }
-            
+
             if (instance.InputMouseScroll)
             {
                 Vector2 scrollDelta = WebBrowserInput.GetMouseScrollDelta();
@@ -283,7 +287,7 @@ namespace Ceffy
                     // 120 is the standard Windows wheel delta unit
                     int deltaX = Mathf.RoundToInt(scrollDelta.x * 120);
                     int deltaY = Mathf.RoundToInt(scrollDelta.y * 120);
-                    
+
                     if (debugMouseEvents)
                         Debug.Log($"[CeffyInstanceView] Scroll: ({deltaX}, {deltaY})");
                     instance.SendMouseWheel(x, y, deltaX, deltaY, GetModifiers());
@@ -330,7 +334,7 @@ namespace Ceffy
             topmostHit = raycastResults.Count > 0 ? raycastResults[0].gameObject : null;
             return topmostHit;
         }
-        
+
         private void HandleDragStart(int x, int y, DragOperation allowedOps)
         {
             if (debugMouseEvents)
@@ -358,9 +362,9 @@ namespace Ceffy
                 instance.SendMouseLeave();
             }
         }
-        
+
         #endregion
-        
+
         #region Keyboard Input
 
         private void SetFocus(bool focused)
@@ -370,7 +374,7 @@ namespace Ceffy
             hasFocus = focused;
             instance.SetKeyboardFocus(focused);
         }
-        
+
         private void OnGUI()
         {
             if (!hasFocus || !instance.InputKeyboard)
@@ -414,10 +418,10 @@ namespace Ceffy
         private EventFlags GetModifiersFromEvent(Event e)
         {
             EventFlags flags = EventFlags.None;
-            if ((e.modifiers & EventModifiers.Shift) != 0)   flags |= EventFlags.ShiftDown;
-            if ((e.modifiers & EventModifiers.Control) != 0)  flags |= EventFlags.ControlDown;
-            if ((e.modifiers & EventModifiers.Alt) != 0)      flags |= EventFlags.AltDown;
-            if ((e.modifiers & EventModifiers.Command) != 0)  flags |= EventFlags.CommandDown;
+            if ((e.modifiers & EventModifiers.Shift) != 0) flags |= EventFlags.ShiftDown;
+            if ((e.modifiers & EventModifiers.Control) != 0) flags |= EventFlags.ControlDown;
+            if ((e.modifiers & EventModifiers.Alt) != 0) flags |= EventFlags.AltDown;
+            if ((e.modifiers & EventModifiers.Command) != 0) flags |= EventFlags.CommandDown;
             if ((e.modifiers & EventModifiers.CapsLock) != 0) flags |= EventFlags.CapsLockOn;
             if (WebBrowserInput.GetMouseButton(0)) flags |= EventFlags.LeftMouseButton;
             if (WebBrowserInput.GetMouseButton(1)) flags |= EventFlags.RightMouseButton;
@@ -428,11 +432,11 @@ namespace Ceffy
 
             return flags;
         }
-        
+
         #endregion
-        
+
         #region Coordinate Conversion
-        
+
         /// <summary>
         /// Convert a screen position to page coordinates.
         /// Returns true if the position is within the page bounds.
@@ -441,24 +445,24 @@ namespace Ceffy
         {
             x = 0;
             y = 0;
-            
+
             if (!rectTransform)
                 return false;
-            
+
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 rectTransform, screenPosition, canvasCamera, out Vector2 localPoint))
                 return false;
-            
+
             Rect rect = rectTransform.rect;
             float normalizedX = Mathf.Clamp01((localPoint.x - rect.x) / rect.width);
             float normalizedY = Mathf.Clamp01((localPoint.y - rect.y) / rect.height);
-            
+
             x = Mathf.Clamp(Mathf.RoundToInt(normalizedX * instance.Width), 0, instance.Width - 1);
             y = Mathf.Clamp(Mathf.RoundToInt((1f - normalizedY) * instance.Height), 0, instance.Height - 1); // flip Y
-            
+
             return true;
         }
-        
+
         /// <summary>
         /// Convert Unity mouse button index to CEF mouse button.
         /// </summary>
@@ -472,7 +476,7 @@ namespace Ceffy
                 _ => MouseButton.Left
             };
         }
-        
+
         /// <summary>
         /// Get current keyboard and mouse button modifiers.
         /// CEF requires mouse button state in event flags for drag operations (e.g. scrollbar thumb dragging).
@@ -480,14 +484,14 @@ namespace Ceffy
         private EventFlags GetModifiers()
         {
             EventFlags modifiers = EventFlags.None;
-            
+
             if (WebBrowserInput.GetShift())
                 modifiers |= EventFlags.ShiftDown;
             if (WebBrowserInput.GetControl())
                 modifiers |= EventFlags.ControlDown;
             if (WebBrowserInput.GetAlt())
                 modifiers |= EventFlags.AltDown;
-            
+
             // Include mouse button state - required by CEF for drag operations
             if (WebBrowserInput.GetMouseButton(0))
                 modifiers |= EventFlags.LeftMouseButton;
@@ -495,7 +499,7 @@ namespace Ceffy
                 modifiers |= EventFlags.RightMouseButton;
             if (WebBrowserInput.GetMouseButton(2))
                 modifiers |= EventFlags.MiddleMouseButton;
-            
+
             return modifiers;
         }
 

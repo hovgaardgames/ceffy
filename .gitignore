@@ -23,6 +23,8 @@ TestProject~/[Aa]ssets/[Ss]treamingAssets/
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
 
+/[Oo]bj.meta
+
 # Native plugin build artifacts
 native~/cef/
 native~/build/

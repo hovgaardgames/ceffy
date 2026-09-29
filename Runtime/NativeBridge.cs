@@ -12,7 +12,8 @@ namespace Ceffy
         private const string DLL = "ceffy_native";
 
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern int Ceffy_Initialize(string cachePath, int remoteDebuggingPort, long adapterLuid, uint graphicsVendorId, uint graphicsDeviceId);
+        public static extern int Ceffy_Initialize(
+            string cachePath, int remoteDebuggingPort, long adapterLuid, uint graphicsVendorId, uint graphicsDeviceId);
 
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Ceffy_Shutdown();
@@ -60,16 +61,20 @@ namespace Ceffy
         public static extern void Ceffy_SendMouseLeave(int browserId);
 
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void Ceffy_SendMouseClick(int browserId, int x, int y, int button, int isUp, int clickCount, int modifiers);
+        public static extern void Ceffy_SendMouseClick(
+            int browserId, int x, int y, int button, int isUp, int clickCount, int modifiers);
 
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void Ceffy_SendMouseWheel(int browserId, int x, int y, int deltaX, int deltaY, int modifiers);
+        public static extern void Ceffy_SendMouseWheel(
+            int browserId, int x, int y, int deltaX, int deltaY, int modifiers);
 
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void Ceffy_SendKeyEvent(int browserId, int eventType, int windowsKeyCode, int nativeKeyCode, int modifiers, int isSystemKey);
+        public static extern void Ceffy_SendKeyEvent(
+            int browserId, int eventType, int windowsKeyCode, int nativeKeyCode, int modifiers, int isSystemKey);
 
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void Ceffy_SendUnityKeyEvent(int browserId, int eventType, int unityKeyCode, int modifiers);
+        public static extern void Ceffy_SendUnityKeyEvent(
+            int browserId, int eventType, int unityKeyCode, int modifiers);
 
         [DllImport(DLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern void Ceffy_SetZoomLevel(int browserId, double zoomLevel);
@@ -120,14 +125,14 @@ namespace Ceffy
             data = null;
             return false;
         }
-        
+
         /// <summary>
         /// Translate a Unity KeyCode and send a key event to CEF.
         /// No-op if the KeyCode has no known mapping.
         /// </summary>
         public static void SendKeyDown(int browserId, KeyCode key, EventFlags modifiers)
             => SendKey(browserId, KeyEventType.RawKeyDown, key, modifiers);
-        
+
         /// <inheritdoc cref="SendKeyDown"/>
         public static void SendKeyUp(int browserId, KeyCode key, EventFlags modifiers)
             => SendKey(browserId, KeyEventType.KeyUp, key, modifiers);

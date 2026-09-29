@@ -8,5 +8,6 @@
   <ItemGroup>
     <Compile Include="Runtime/**/*.cs" />
     <Compile Include="Editor/**/*.cs" />
+    <Compile Include="Samples~/**/*.cs" />
   </ItemGroup>
 </Project>

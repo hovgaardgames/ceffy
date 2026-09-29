@@ -106,11 +106,13 @@ namespace Ceffy.Editor
             {
                 if (AssetDatabase.DeleteAsset(sourceStreamingAssetsAssetPath))
                 {
-                    Debug.Log($"[Ceffy] Removed imported sample StreamingAssets folder: {sourceStreamingAssetsAssetPath}");
+                    Debug.Log(
+                        $"[Ceffy] Removed imported sample StreamingAssets folder: {sourceStreamingAssetsAssetPath}");
                     return true;
                 }
 
-                Debug.LogWarning($"[Ceffy] Failed to remove imported sample StreamingAssets folder: {sourceStreamingAssetsAssetPath}");
+                Debug.LogWarning($"[Ceffy] Failed to remove imported sample StreamingAssets folder: " +
+                                 $"{sourceStreamingAssetsAssetPath}");
             }
 
             return true;

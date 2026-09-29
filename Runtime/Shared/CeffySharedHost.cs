@@ -169,8 +169,12 @@ namespace Ceffy
             if (hostReady)
                 SendToHost(new HostMessage
                 {
-                    type = "layout", id = slot.IdString,
-                    x = content.x, y = content.y, w = content.width, h = content.height
+                    type = "layout",
+                    id = slot.IdString,
+                    x = content.x,
+                    y = content.y,
+                    w = content.width,
+                    h = content.height
                 });
             return true;
         }
@@ -282,8 +286,13 @@ namespace Ceffy
             var rect = slot.Content;
             SendToHost(new HostMessage
             {
-                type = "add", id = slot.IdString, src = slot.Url,
-                x = rect.x, y = rect.y, w = rect.width, h = rect.height
+                type = "add",
+                id = slot.IdString,
+                src = slot.Url,
+                x = rect.x,
+                y = rect.y,
+                w = rect.width,
+                h = rect.height
             });
         }
 
@@ -340,7 +349,8 @@ namespace Ceffy
             browser.SendMouseLeave();
         }
 
-        public void SendMouseClick(Slot slot, int x, int y, MouseButton button, bool isUp, int clickCount, EventFlags modifiers)
+        public void SendMouseClick(
+            Slot slot, int x, int y, MouseButton button, bool isUp, int clickCount, EventFlags modifiers)
         {
             if (!ToAtlas(slot, ref x, ref y))
                 return;
