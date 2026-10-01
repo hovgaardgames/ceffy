@@ -1,0 +1,31 @@
+:root {
+    --ink: #071c15;
+    --text: #ebfff3;
+    --muted: #afd0bf;
+    --accent: #85f2ab;
+    --accent-hover: #b8ffd0;
+    --gold: #ffdb85;
+    --panel: rgba(9, 28, 21, .96);
+    --border: #375e49;
+    --button: #183f2c;
+    --button-hover: #27583e;
+    --bar-track: #244334;
+    --font-family: Consolas, "Courier New", monospace;
+    font-family: var(--font-family);
+}
+
+.panel, article { border-radius: 2px; box-shadow: inset 0 0 0 1px #85f2ab18, 0 4px 0 #0005; }
+.status.panel, .operations.panel { border-top: 3px solid var(--accent); }
+button { border-radius: 2px; font-weight: 700; }
+.eyebrow, .stat > span { letter-spacing: .08em; }
+.brand strong, h1, h2 { font-family: var(--font-family); }
+.stat strong { color: var(--accent); }
+.currency strong { color: var(--gold); }
+.divider { background: repeating-linear-gradient(90deg, var(--border) 0 8px, transparent 8px 12px); }
+progress::-webkit-progress-bar, progress::-webkit-progress-value { border-radius: 0; }
+progress::-webkit-progress-value {
+    background: repeating-linear-gradient(90deg, var(--accent) 0 8px, var(--button) 8px 10px);
+}
+article strong { font-size: 20px; letter-spacing: 0; }
+article header span { color: var(--accent); }
+article button { font-size: 22px; }

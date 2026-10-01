@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ceffy · Outpost</title>
+    <link rel="stylesheet" href="hud.css">
+    <link id="theme-style" rel="stylesheet" href="themes/green.css">
+    <script src="numbers.js" defer></script>
+    <script src="hud.js" defer></script>
+</head>
+<body>
+    <header id="status" class="status panel">
+        <div class="brand"><span class="eyebrow">CEFFY / FIELD DEMO</span><strong>OUTPOST<span>01</span></strong></div>
+        <div class="stat"><span>SUIT</span><strong id="health">—</strong><progress id="health-bar" max="100"></progress></div>
+        <div class="stat"><span>GENERATOR</span><strong id="generator">—</strong><progress id="generator-bar" max="200"></progress></div>
+        <div class="stat currency"><span>ENERGY</span><strong id="energy">—</strong><span id="energy-gain" class="currency-gain" role="status" aria-live="polite" hidden></span></div>
+        <div class="stat"><span>SCORE</span><strong id="score">—</strong></div>
+        <button id="pause" data-hit aria-label="Pause and show controls" disabled>Ⅱ / HELP</button>
+    </header>
+
+    <aside id="operations" class="operations panel" data-hit>
+        <span class="eyebrow">DEFENSE NETWORK</span>
+        <h2 id="wave">Preparing outpost</h2>
+        <p id="phase">Connecting to Unity…</p>
+        <div class="divider"></div>
+        <p class="placement-hint">Hover a marked pad to build a turret.<br><strong id="build-cost">40 E</strong> per turret.</p>
+        <button id="repair" disabled><span>Repair generator</span><span id="repair-cost">20 E</span></button>
+        <button id="heal" disabled><span>Repair suit</span><span id="heal-cost">15 E</span></button>
+        <button id="next-wave" class="accent" disabled>Deploy next wave →</button>
+        <p class="hint">Choose the pad you want, then click it or its Build button. Click built turret panels to upgrade.</p>
+        <details id="integration">
+            <summary>Ceffy in this scene</summary>
+            <p>Dedicated transparent HUD · shared atlas world panels · typed RPC commands · JSON messages · DOM hit regions.</p>
+            <p id="connection">Waiting for page handshake</p>
+        </details>
+    </aside>
+
+    <section id="appearance" class="appearance panel" data-hit aria-label="Interface settings">
+        <div class="appearance-heading"><strong>STYLE / SIZE</strong></div>
+        <label for="hud-zoom">HUD zoom <output id="zoom-value" for="hud-zoom">150%</output></label>
+        <input id="hud-zoom" type="range" min="75" max="200" step="5" value="150">
+        <button id="zoom-reset">Reset to 150%</button>
+        <p class="hint">Drag to choose a size; release to apply browser zoom.</p>
+        <span class="eyebrow">CSS STYLE</span>
+        <div class="themes" role="group" aria-label="Color style">
+            <button data-theme="green" aria-pressed="true" title="Terminal: monospace, square panels, segmented bars">Green</button>
+            <button data-theme="pink" aria-pressed="false" title="Soft: light cards, rounded buttons, serif headings">Pink</button>
+            <button data-theme="blue" aria-pressed="false" title="Tech: angular panels, slim typography, luminous bars">Blue</button>
+        </div>
+    </section>
+
+    <footer class="field-notes panel"><span class="signal"></span> WASD move · Mouse aim · Hold click to fire · ESC pause</footer>
+    <div id="toast" role="status" aria-live="polite" hidden></div>
+
+    <section id="dialog" class="backdrop" data-hit>
+        <div id="dialog-content" class="dialog-content" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+            <div class="briefing panel">
+                <span class="eyebrow">MISSION BRIEFING / OUTPOST 01</span>
+                <h1 id="dialog-title">Hold the line.</h1>
+                <p id="dialog-message">Protect the generator. Every raider drops energy to fund your defenses.</p>
+                <div class="steps">
+                    <div><span>01</span><strong>Move & fire</strong><p>WASD to move. Aim with the mouse and hold left click to shoot.</p></div>
+                    <div><span>02</span><strong>Collect & build</strong><p>Walk over gold cubes. Hover a marked pad and click to build there. Spend energy on repairs.</p></div>
+                    <div><span>03</span><strong>Upgrade in the world</strong><p>Click a turret’s floating panel to increase damage. The generator has a repair panel too.</p></div>
+                </div>
+                <p class="hint">You are the blue capsule. The cyan tower is your generator. Red cubes are raiders.</p>
+                <button id="resume" class="accent" disabled>Connecting to Ceffy…</button>
+                <button id="restart" hidden>Restart defense</button>
+                <p id="startup" class="hint">The scene waits for its local HTML page before starting gameplay.</p>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

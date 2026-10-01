@@ -56,6 +56,11 @@
       "displayName": "Worldspace Demo",
       "description": "A world-space Ceffy panel viewed from an angle, with WASD and mouse camera controls.",
       "path": "Samples~/Worldspace"
+    },
+    {
+      "displayName": "Gameplay HUD Demo",
+      "description": "Playable wave defense with a transparent HUD, typed bridge, and shared world-space panels.",
+      "path": "Samples~/GameplayHud"
     }
   ]
 }
