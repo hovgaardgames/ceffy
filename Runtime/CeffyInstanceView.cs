@@ -49,6 +49,16 @@ namespace Ceffy
         private bool isDragOutside;
         private DragOperation dragAllowedOps;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            raycastResults.Clear();
+            pointerEventData = null;
+            raycastFrame = -1;
+            raycastPosition = Vector2.zero;
+            topmostHit = null;
+        }
+
         private void Awake()
         {
             instance = GetComponent<CeffyInstance>();
