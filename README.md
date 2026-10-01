@@ -73,6 +73,10 @@ Optional demos are available under **Package Manager > Ceffy > Samples**:
 
 After importing a sample, the included `CeffySampleStreamingAssets` editor script automatically copies its HTML files to `Assets/StreamingAssets/`.
 
+The **Gameplay HUD Demo** is a playable top-down wave-defense game with a transparent HTML HUD, typed bridge commands,
+and shared world-space health and upgrade panels. Import it and open `GameplayHudDemo.unity`;
+see [the sample guide](Samples~/GameplayHud/README.md) for controls and integration details.
+
 ## Development
 
 For code style, field order, checks, and pull request guidance, see [CONTRIBUTING.md](CONTRIBUTING.md).
