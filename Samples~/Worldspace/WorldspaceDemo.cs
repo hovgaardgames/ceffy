@@ -10,7 +10,7 @@ namespace Ceffy.Demos.Worldspace
     public sealed class WorldspaceDemo : MonoBehaviour
     {
         [Tooltip("Page shown on the world-space Ceffy instance.")]
-        public string StartUrl = "https://www.unity.com";
+        public string StartUrl = "https://www.hovgaard.com/";
 
         [Tooltip("Browser viewport size in CSS pixels.")]
         public int Width = 1280;

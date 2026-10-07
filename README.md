@@ -96,6 +96,19 @@ For code style, field order, checks, and pull request guidance, see [CONTRIBUTIN
 
 The package appears under **Packages/Ceffy**. Changes to `Runtime/` and `Editor/` are available immediately through the local package reference.
 
+### Release version
+
+To prepare a separate Asset Store package without changing repository files, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\prepare-release.ps1 -Target AssetStore
+```
+
+The script creates a fresh folder under `../ceffy-releases/`. Use `-OutputPath` to choose another new folder.
+It adjusts the exported README, license references, and worldspace URLs, and excludes development files.
+The script uses the bundled `ThirdPartyLicenses/ChromiumCredits.html`; no local CEF SDK is needed.
+Required third-party notices are retained; dependency licensing, media, and store acceptance still need review.
+
 ### Native Build
 
 Native development requires:
@@ -140,6 +153,10 @@ powershell -ExecutionPolicy Bypass -File .\lint-csharp.ps1 -Fix
 ## Testing
 
 Add `"testables": ["com.hovgaard.ceffy"]` to the consuming Unity project's `Packages/manifest.json`, then open **Window > General > Test Runner**. EditMode contains unit tests; PlayMode contains the Windows native runtime smoke test.
+
+## Third-Party Content
+
+Ceffy includes Chromium Embedded Framework (CEF) under the BSD 3-Clause license, with native binaries bundled in `NativeRuntime/win-x64/`. See [THIRD PARTY NOTICES.md](THIRD%20PARTY%20NOTICES.md) for the CEF license. Chromium and other bundled third-party components retain their respective licenses; see [Chromium credits](ThirdPartyLicenses/ChromiumCredits.html) for additional notices.
 
 ## License
 
