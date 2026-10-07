@@ -10,7 +10,7 @@ namespace Ceffy.Bridge
 {
     internal static class BridgeSerializer
     {
-        private static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
+        internal static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
             NullValueHandling = NullValueHandling.Ignore,
             ContractResolver = new DefaultContractResolver
@@ -178,13 +178,17 @@ namespace Ceffy.Bridge
                 return defaults;
             }
 
-            var result = new object[parameters.Count];
+            var result = new object[paramTypes.Length];
             for (int i = 0; i < parameters.Count; i++)
             {
                 var param = parameters[i];
                 var targetType = paramTypes[i].ParameterType;
                 result[i] = ConvertValue(param, targetType);
             }
+
+            for (var i = parameters.Count; i < paramTypes.Length; i++)
+                result[i] = paramTypes[i].IsOptional ? paramTypes[i].DefaultValue : null;
+
             return result;
         }
 

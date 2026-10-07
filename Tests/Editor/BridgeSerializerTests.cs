@@ -64,6 +64,21 @@ namespace Ceffy.Tests.Editor
             Assert.AreEqual("ready", converted[1]);
         }
 
+        [Test]
+        public void ConvertParameters_UsesOptionalDefaultsWhenTrailingParametersAreMissing()
+        {
+            var method = typeof(BridgeSerializerTests).GetMethod(
+                nameof(AcceptOptional),
+                BindingFlags.NonPublic | BindingFlags.Static);
+            var parameters = BridgeSerializer.ExtractParams("{\"params\":[1]}");
+
+            var converted = BridgeSerializer.ConvertParameters(method, parameters);
+
+            Assert.AreEqual(1, converted[0]);
+            Assert.AreEqual("ready", converted[1]);
+            Assert.DoesNotThrow(() => method.Invoke(null, converted));
+        }
+
         private static void AcceptPayload(UserPayload payload, int count)
         {
         }
