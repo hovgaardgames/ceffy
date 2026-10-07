@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.0](https://github.com/hovgaardgames/ceffy/compare/v1.3.0...v1.4.0) (2026-10-07)
+
+### Features
+
+* Add Asset Store release preparation ([#19](https://github.com/hovgaardgames/ceffy/issues/19)) ([e60e47b](https://github.com/hovgaardgames/ceffy/commit/e60e47bd582ab01fb81306db0e85a8004e8e71f1))
+* Include inherited types in TypeScript generation ([#18](https://github.com/hovgaardgames/ceffy/issues/18)) ([c3ad0cc](https://github.com/hovgaardgames/ceffy/commit/c3ad0cc395447fd6b5d8cf8d1200cfd274eb416d))
+
+### Bug Fixes
+
+* Skip ignored fields in TypeScript generation ([#18](https://github.com/hovgaardgames/ceffy/issues/18)) ([c3ad0cc](https://github.com/hovgaardgames/ceffy/commit/c3ad0cc395447fd6b5d8cf8d1200cfd274eb416d))
+
 ## [1.3.0](https://github.com/hovgaardgames/ceffy/compare/v1.2.0...v1.3.0) (2026-10-01)
 
 ### Features
