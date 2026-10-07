@@ -3,7 +3,8 @@ param(
     [ValidateSet('AssetStore')]
     [string]$Target = 'AssetStore',
     [string]$OutputPath,
-    [string]$CreditsPath
+    [string]$CreditsPath,
+    [switch]$InPlace
 )
 
 Set-StrictMode -Version Latest
@@ -99,7 +100,14 @@ function Assert-ReleaseSource {
 
 $sourceRoot = [System.IO.Path]::GetFullPath($PSScriptRoot)
 $manifest = Get-Content -LiteralPath (Join-Path $sourceRoot 'package.json') -Raw | ConvertFrom-Json
-if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+if ($InPlace -and -not [string]::IsNullOrWhiteSpace($OutputPath)) {
+    throw 'Use either -InPlace or -OutputPath, not both.'
+}
+
+if ($InPlace) {
+    $OutputPath = $sourceRoot
+}
+elseif ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $releaseName = 'ceffy-{0}-{1}-{2}' -f $manifest.version, $Target, (Get-Date -Format 'yyyyMMdd-HHmmss')
     $OutputPath = Join-Path (Split-Path $sourceRoot -Parent) "ceffy-releases/$releaseName"
 }
@@ -107,12 +115,12 @@ if ([string]::IsNullOrWhiteSpace($OutputPath)) {
 $destination = [System.IO.Path]::GetFullPath($OutputPath)
 $sourcePrefix = $sourceRoot.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
 $destinationPrefix = $destination.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
-if ($destination.Equals($sourceRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
+if (-not $InPlace -and ($destination.Equals($sourceRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
     $destination.StartsWith($sourcePrefix, [System.StringComparison]::OrdinalIgnoreCase) -or
-    $sourceRoot.StartsWith($destinationPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    $sourceRoot.StartsWith($destinationPrefix, [System.StringComparison]::OrdinalIgnoreCase))) {
     throw 'The export folder must be outside the repository and must not be its ancestor.'
 }
-if (Test-Path -LiteralPath $destination) {
+if (-not $InPlace -and (Test-Path -LiteralPath $destination)) {
     throw "The export folder already exists. Choose a fresh OutputPath: $destination"
 }
 
@@ -143,13 +151,15 @@ $scene = Replace-ReleaseText ([System.IO.File]::ReadAllText((Join-Path $sourceRo
     '(?m)^([ \t]*StartUrl: )[^\r\n]*'
 ) '${1}https://www.hovgaard.com/'
 
-New-Item -ItemType Directory -Path $destination | Out-Null
-foreach ($releaseEntry in $releaseEntries) {
-    $sourcePath = Join-Path $sourceRoot $releaseEntry
-    Copy-Item -LiteralPath $sourcePath -Destination $destination -Recurse
-    $metaPath = $sourcePath + '.meta'
-    if (Test-Path -LiteralPath $metaPath -PathType Leaf) {
-        Copy-Item -LiteralPath $metaPath -Destination $destination
+if (-not $InPlace) {
+    New-Item -ItemType Directory -Path $destination | Out-Null
+    foreach ($releaseEntry in $releaseEntries) {
+        $sourcePath = Join-Path $sourceRoot $releaseEntry
+        Copy-Item -LiteralPath $sourcePath -Destination $destination -Recurse
+        $metaPath = $sourcePath + '.meta'
+        if (Test-Path -LiteralPath $metaPath -PathType Leaf) {
+            Copy-Item -LiteralPath $metaPath -Destination $destination
+        }
     }
 }
 
@@ -157,9 +167,25 @@ Write-ReleaseText (Join-Path $destination 'README.md') $readme
 Write-ReleaseText (Join-Path $destination $demoPath) $demo
 Write-ReleaseText (Join-Path $destination $scenePath) $scene
 $licensesPath = Join-Path $destination 'ThirdPartyLicenses'
-Copy-Item -LiteralPath $CreditsPath -Destination (Join-Path $licensesPath 'ChromiumCredits.html')
+$exportCreditsPath = Join-Path $licensesPath 'ChromiumCredits.html'
+if (-not [System.IO.Path]::GetFullPath($CreditsPath).Equals(
+    $exportCreditsPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+    Copy-Item -LiteralPath $CreditsPath -Destination $exportCreditsPath
+}
+
+if ($InPlace) {
+    foreach ($licenseEntry in @('LICENSE.md', 'LICENSE.md.meta')) {
+        $licensePath = Join-Path $destination $licenseEntry
+        if (Test-Path -LiteralPath $licensePath -PathType Leaf) {
+            Remove-Item -LiteralPath $licensePath
+        }
+    }
+}
 
 foreach ($excludedEntry in @('LICENSE.md', 'LICENSE.md.meta', 'native~', '.git', 'prepare-release.ps1')) {
+    if ($InPlace -and $excludedEntry -in @('native~', '.git', 'prepare-release.ps1')) {
+        continue
+    }
     if (Test-Path -LiteralPath (Join-Path $destination $excludedEntry)) {
         throw "Unexpected entry in export: $excludedEntry"
     }
@@ -173,6 +199,10 @@ if ([System.IO.File]::ReadAllText((Join-Path $destination $demoPath)) -notmatch
 }
 
 Write-Output "Prepared $Target package: $destination"
+if ($InPlace) {
+    Write-Output 'Updated the customized package directly and removed LICENSE.md and LICENSE.md.meta.'
+    Write-Output 'Remove the copied prepare-release.ps1 and its .meta before uploading the package.'
+}
 Write-Warning 'Confirm the CEF credits match the shipped binaries and review all dependency license obligations.'
 Write-Warning 'Review marketing images, listing disclosures, and CEF subprocess acceptance before submission.'
 Write-Warning 'Verify installation and samples in a clean Unity project. This export does not certify store approval.'
