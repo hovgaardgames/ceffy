@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Bug Fixes
 
-* view fails to gain focus on start ([#23](https://github.com/hovgaardgames/ceffy/issues/23)) ([0edaa37](https://github.com/hovgaardgames/ceffy/commit/0edaa379b2da621b233dc26dcad3087fc606ce76))
+* View fails to gain focus on start ([#23](https://github.com/hovgaardgames/ceffy/issues/23)) ([0edaa37](https://github.com/hovgaardgames/ceffy/commit/0edaa379b2da621b233dc26dcad3087fc606ce76))
 
 ## [1.4.0](https://github.com/hovgaardgames/ceffy/compare/v1.3.0...v1.4.0) (2026-10-07)
 
