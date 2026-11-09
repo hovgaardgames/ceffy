@@ -23,9 +23,14 @@ namespace Ceffy
         private static Vector2 raycastPosition;
         private static GameObject topmostHit;
         private static Texture2D transparentTexture;
+        private static CeffyInstanceView focusedView;
 
         [Tooltip("Enable debug logging for mouse events")]
         public bool debugMouseEvents;
+        [SerializeField, Tooltip("Take keyboard focus when this view is enabled.")]
+        private bool autoFocus;
+        [SerializeField, Tooltip("Keep keyboard focus on outside clicks. Another browser can still take focus.")]
+        private bool keepKeyboardFocus;
 
         private CeffyInstance instance;
         private RawImage rawImage;
@@ -52,6 +57,7 @@ namespace Ceffy
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
+            focusedView = null;
             raycastResults.Clear();
             pointerEventData = null;
             raycastFrame = -1;
@@ -81,6 +87,8 @@ namespace Ceffy
             instance.OnViewportResized += HandleViewportResized;
             instance.OnDragStart += HandleDragStart;
             ApplyFixedSize();
+            if (autoFocus)
+                Focus();
         }
 
         private void OnDisable()
@@ -89,7 +97,7 @@ namespace Ceffy
             instance.OnDragStart -= HandleDragStart;
             if (isPointerInside)
                 HandlePointerExit();
-            SetFocus(false);
+            Unfocus();
             lastTexture = null;
         }
 
@@ -172,8 +180,7 @@ namespace Ceffy
             Vector2 mousePos = WebBrowserInput.GetMousePosition();
             bool isInside = IsPointerOver(mousePos);
 
-            if (WebBrowserInput.GetMouseButtonDown(0))
-                SetFocus(isInside);
+            UpdatePointerFocus(isInside);
 
             if (isInside != isPointerInside)
             {
@@ -358,6 +365,46 @@ namespace Ceffy
         #endregion
 
         #region Keyboard Input
+
+        public bool HasFocus => hasFocus;
+
+        public void Focus()
+        {
+            if (!isActiveAndEnabled)
+                return;
+
+            if (focusedView && focusedView != this)
+                focusedView.Unfocus();
+
+            focusedView = this;
+            if (EventSystem.current)
+                EventSystem.current.SetSelectedGameObject(null);
+
+            SetFocus(true);
+        }
+
+        public void Unfocus()
+        {
+            if (focusedView == this)
+                focusedView = null;
+
+            SetFocus(false);
+        }
+
+        private void UpdatePointerFocus(bool isInside)
+        {
+            if (!WebBrowserInput.GetMouseButtonDown(0))
+                return;
+
+            if (isInside)
+            {
+                Focus();
+                return;
+            }
+
+            if (!keepKeyboardFocus)
+                Unfocus();
+        }
 
         private void SetFocus(bool focused)
         {
